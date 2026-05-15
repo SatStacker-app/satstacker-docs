@@ -1,0 +1,16 @@
+# Railway's Nixpacks builder will auto-detect this as a Node project
+# from package.json. We just need to tell it which start command to use
+# after `npm install` and `npm run build`.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+startCommand = "npm run serve"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[deploy.healthcheckPath]
+path = "/"
+timeout = 30
