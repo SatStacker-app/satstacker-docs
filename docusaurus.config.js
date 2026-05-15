@@ -34,6 +34,7 @@ const config = {
         docs: {
           sidebarPath: './sidebars.js',
           routeBasePath: '/', // serve docs at the root
+          docItemComponent: '@theme/ApiItem',
         },
         blog: false, // disable the blog feature
         theme: {
@@ -98,7 +99,41 @@ const config = {
       },
     }),
 
-  plugins: [],
+  plugins: [
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          satstackerEngine: {
+            specPath: 'openapi/partner-api.json',
+            outputDir: 'docs/api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+            },
+          },
+        },
+      },
+    ],
+
+    function webpackFallbackPlugin() {
+      return {
+        name: 'webpack-fallback-plugin',
+        configureWebpack() {
+          return {
+            resolve: {
+              fallback: {
+                path: require.resolve('path-browserify'),
+              },
+            },
+          };
+        },
+      };
+    },
+  ],
+
+  themes: ['docusaurus-theme-openapi-docs'],
 };
 
 module.exports = config;
