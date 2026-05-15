@@ -13,19 +13,6 @@ const sidebars = {
     'rate-limits',
     'changelog',
   ],
-  apiSidebar: [
-    {
-      type: 'category',
-      label: 'API Reference',
-      link: {
-        type: 'generated-index',
-        title: 'SatStacker Engine API',
-        description: 'Complete reference for the SatStacker Engine Partner API.',
-        slug: '/api/satstacker-engine-api',
-      },
-      items: require('./docs/api/sidebar.ts'),
-    },
-  ],
 };
 
-export default sidebars;
+module.exports = sidebars;

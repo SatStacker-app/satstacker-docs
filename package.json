@@ -2,32 +2,26 @@
   "name": "satstacker-docs",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
-    "build": "node scripts/fetch-openapi.js && docusaurus gen-api-docs all && docusaurus build",
+    "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
-    "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
-    "serve": "docusaurus serve --port $PORT --host 0.0.0.0 --no-open",
-    "gen-api-docs": "docusaurus gen-api-docs all",
-    "clean-api-docs": "docusaurus clean-api-docs all"
+    "serve": "docusaurus serve --port ${PORT:-3000} --host 0.0.0.0 --no-open"
   },
   "dependencies": {
-    "@docusaurus/core": "^3.5.2",
-    "@docusaurus/preset-classic": "^3.5.2",
+    "@docusaurus/core": "^3.10.1",
+    "@docusaurus/preset-classic": "^3.10.1",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
-    "docusaurus-plugin-openapi-docs": "^4.0.1",
-    "docusaurus-theme-openapi-docs": "^4.0.1",
     "prism-react-renderer": "^2.3.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.5.2",
-    "@docusaurus/types": "^3.5.2"
+    "@docusaurus/module-type-aliases": "^3.10.1",
+    "@docusaurus/types": "^3.10.1"
   },
   "browserslist": {
     "production": [
@@ -41,7 +35,10 @@
       "last 1 safari version"
     ]
   },
+  "overrides": {
+    "webpack": "5.105.0"
+  },
   "engines": {
-    "node": "20.x"
+    "node": ">=20 <23"
   }
 }

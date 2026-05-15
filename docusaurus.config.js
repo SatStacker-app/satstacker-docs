@@ -2,7 +2,7 @@
 // `@type` JSDoc annotations allow editor autocompletion and type checking
 // (when paired with `@ts-check`).
 
-import { themes as prismThemes } from 'prism-react-renderer';
+const { themes: prismThemes } = require('prism-react-renderer');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -34,7 +34,6 @@ const config = {
         docs: {
           sidebarPath: './sidebars.js',
           routeBasePath: '/', // serve docs at the root
-          docItemComponent: '@theme/ApiItem', // required for OpenAPI plugin
         },
         blog: false, // disable the blog feature
         theme: {
@@ -61,12 +60,6 @@ const config = {
             label: 'Documentation',
           },
           {
-            type: 'docSidebar',
-            sidebarId: 'apiSidebar',
-            position: 'left',
-            label: 'API Reference',
-          },
-          {
             href: 'https://satstacker.app',
             label: 'SatStacker',
             position: 'right',
@@ -80,7 +73,6 @@ const config = {
             title: 'Documentation',
             items: [
               { label: 'Getting Started', to: '/getting-started' },
-              { label: 'API Reference', to: '/api/satstacker-engine-api' },
               { label: 'Changelog', to: '/changelog' },
             ],
           },
@@ -106,48 +98,7 @@ const config = {
       },
     }),
 
-  plugins: [
-    // Polyfill Node built-ins that some OpenAPI plugin dependencies
-    // (postman-code-generators) try to import in the browser bundle.
-    function nodePolyfillsPlugin() {
-      return {
-        name: 'node-polyfills',
-        configureWebpack() {
-          return {
-            resolve: {
-              fallback: {
-                path: false,
-                fs: false,
-                os: false,
-                crypto: false,
-                stream: false,
-                buffer: false,
-                util: false,
-              },
-            },
-          };
-        },
-      };
-    },
-    [
-      'docusaurus-plugin-openapi-docs',
-      {
-        id: 'api',
-        docsPluginId: 'classic',
-        config: {
-          satstackerEngine: {
-            specPath: 'openapi/partner-api.json',
-            outputDir: 'docs/api',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-        },
-      },
-    ],
-  ],
-
-  themes: ['docusaurus-theme-openapi-docs'],
+  plugins: [],
 };
 
-export default config;
+module.exports = config;
