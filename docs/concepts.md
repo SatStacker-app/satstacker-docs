@@ -33,7 +33,7 @@ A user inside your platform who has opted in to Smart Timing.
 | `consent_timestamp` | ISO datetime | When the user accepted consent. |
 | `status` | string | `linked` (active) or `disabled` (admin action). |
 
-Partner users are **idempotent on `(partner_slug, partner_user_id)`**. Re-sending the same `partner_user_id` updates the existing record:
+Partner users are **idempotent on `(partner_slug, environment, partner_user_id)`**. Re-sending the same `partner_user_id` updates the existing record:
 
 - `email`, `auth_provider`, `consent_version`, `consent_timestamp` are updated.
 - `status` is refreshed to `linked` unless the user was previously `disabled` (which requires admin action to clear).
@@ -54,7 +54,7 @@ A Smart Timing DCA plan created by a partner user.
 | `start_date` | ISO datetime \| null | Window anchor. If omitted, defaults to creation time. |
 | `status` | string | `active`, `paused`, or `cancelled`. |
 
-Partner plans are **idempotent on `(partner_slug, partner_plan_id)`**. Re-sending updates the plan, but there are specific rules about when the buying window resets — see [Window reset behavior](#window-reset-behavior) below.
+Partner plans are **idempotent on `(partner_slug, environment, partner_plan_id)`**. Re-sending updates the plan, but there are specific rules about when the buying window resets — see [Window reset behavior](#window-reset-behavior) below.
 
 ### Window reset behavior
 
@@ -84,6 +84,8 @@ When the Smart Timing engine decides a tranche should execute, it writes a `Part
 | `amount_usd` | decimal string | USD amount the partner should spend on this tranche. |
 | `reason` | string | `smart_timing` (currently the only value). |
 | `status` | string | `pending`, `sent`, `filled`, `partial`, `failed`, `cancelled`. |
+| `lease_expires_at` | ISO datetime | When the current delivery lease expires. Returned by `GET /executions/due`. |
+| `delivered_count` | integer | Number of times this execution has been delivered to the partner. |
 
 The lifecycle of an execution:
 
@@ -91,7 +93,7 @@ The lifecycle of an execution:
 2. **`sent`** — returned to the partner via `GET /executions/due`. Leased for 5 minutes.
 3. **Terminal** — `filled`, `partial`, `failed`, or `cancelled` based on the partner's confirmation.
 
-If a `sent` execution is not confirmed before its lease expires, it returns to the eligible pool and is re-delivered on the next `GET /executions/due` poll. The `execution_id` and `idempotency_key` never change between deliveries — partners should dedupe on either of these.
+If a `sent` execution is not confirmed before its lease expires, it returns to the eligible pool and is re-delivered on the next `GET /executions/due` poll. The `execution_id` and `idempotency_key` never change between deliveries. Partners should dedupe on either of these.
 
 ## Trade
 
@@ -105,7 +107,7 @@ Trades are written when a partner calls `POST /partner/v1/executions/{id}/confir
 
 For successful trades, SatStacker records `usd_amount`, `btc_amount`, `execution_price`, `executed_at`, and optionally `partner_fee_usd`. For failures, the `failure_reason` is recorded for audit but no financial values are stored.
 
-The `partner_order_id` field links each trade back to the partner's own internal order/trade record. SatStacker enforces uniqueness on `(partner, partner_order_id)` — the same `partner_order_id` cannot be used to confirm two different executions.
+The `partner_order_id` field links each trade back to the partner's own internal order/trade record. SatStacker enforces uniqueness on `(partner, environment, partner_order_id)`, so the same `partner_order_id` cannot be used to confirm two different executions in the same environment.
 
 ## How a Smart Timing plan flows through the system
 

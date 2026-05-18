@@ -28,11 +28,12 @@ A successful response confirms which partner identity is associated with the key
 {
   "partner_slug": "your_partner_slug",
   "partner_name": "Your Partner Name",
-  "status": "active"
+  "status": "active",
+  "environment": "test"
 }
 ```
 
-If you get a `401`, double-check the `Authorization` header format (it must be `Bearer ` followed by the key, with a single space).
+If you get a `401`, double-check the `Authorization` header format. It must be `Bearer ` followed by the key, with a single space.
 
 ## Step 2 — Link a partner user
 
@@ -72,7 +73,7 @@ curl https://api.satstacker.app/partner/v1/plans \
   }'
 ```
 
-Like users, plans are idempotent on `partner_plan_id`. Re-sending the same plan updates editable fields, and if the amount or frequency changes, SatStacker resets the plan's buying window. See [Plans](/concepts#partner-plan) for the full reset rules.
+Like users, plans are idempotent on `partner_plan_id` within a partner environment. Re-sending the same plan updates editable fields, and if the amount or frequency changes, SatStacker resets the plan's buying window. See [Plans](/concepts#partner-plan) for the full reset rules.
 
 ## Step 4 — Poll for due executions
 
@@ -100,18 +101,22 @@ A successful response returns an array of due execution instructions:
     "amount_usd": "33.33",
     "reason": "smart_timing",
     "idempotency_key": "plan_xyz_456:2026-05-15T08:00:00+00:00:0",
-    "created_at": "2026-05-15T14:23:00Z"
+    "created_at": "2026-05-15T14:23:00Z",
+    "lease_expires_at": "2026-05-15T14:28:00Z",
+    "delivered_count": 1
   }
 ]
 ```
 
-Each instruction is **leased to you for 5 minutes** when returned. If you don't confirm it within that window, SatStacker assumes your worker crashed and re-issues the same instruction (same `execution_id` and `idempotency_key`) on the next poll. Always dedupe on `idempotency_key` on your side.
+Each instruction is **leased to you for 5 minutes** when returned. If you do not confirm it within that window, SatStacker assumes your worker crashed and re-issues the same instruction, with the same `execution_id` and `idempotency_key`, on a later poll. Always dedupe on `idempotency_key` on your side.
 
 Recommended polling cadence: **once every 60 seconds at the partner level**, not per user. See [Rate Limits](/rate-limits) for guidance.
 
+You can only confirm an execution after it has been returned by `GET /partner/v1/executions/due`. Returning an execution marks it as `sent` and starts the lease. Confirming an execution that is still `pending` returns `409 Conflict`.
+
 ## Step 5 — Confirm execution outcomes
 
-After your platform executes the trade (or fails to), report the outcome back. For a successful fill:
+After your platform executes the trade, or fails to, report the outcome back. For a successful fill:
 
 ```bash
 curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5d6e7f8a9b0c/confirm \
@@ -128,7 +133,7 @@ curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5
   }'
 ```
 
-For a failure (insufficient funds, market closed, network error):
+For a failure, such as insufficient funds, market closed, or network error:
 
 ```bash
 curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5d6e7f8a9b0c/confirm \
@@ -149,7 +154,7 @@ See [Confirm Execution](/api-reference/confirm-execution) for the full schema, p
 
 You now have the full flow working end-to-end:
 
-- **Production cutover** — when you're ready to go live, request a production key (`sse_live_*`) and switch your base URL accordingly. The endpoints and payloads are identical between sandbox and production.
+- **Production cutover** — when you are ready to go live, request a production key (`sse_live_*`) and switch from your sandbox key to your production key. The base URL, endpoints, and payloads are identical between sandbox and production.
 - **Billing visibility** — call `GET /partner/v1/billing/monthly?month=YYYY-MM` to see usage and fees for any billing month.
 - **Per-user reconciliation** — `GET /partner/v1/billing/monthly/users` returns volume by user for finance review.
 

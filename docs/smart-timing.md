@@ -11,7 +11,7 @@ Smart Timing is SatStacker's tranche-based DCA algorithm. This page explains how
 
 Most recurring Bitcoin purchases fire at the same time every week or month, regardless of where price sits. Over years that's fine, the dollar-cost-averaging principle smooths things out. But within any individual purchase, the user has no protection against buying at a local high.
 
-If a user's weekly buy fires on Monday at 9am, they pay Monday's 9am price. If Bitcoin happens to be 4% above its weekly average at that moment, the user paid 4% too much that week. Over a year of weekly purchases, those small inefficiencies compound.
+If a user's weekly buy fires on Monday at 9am, they pay Monday's 9am price. If Bitcoin happens to be 4% above its weekly average at that moment, the user paid more than they would have at the weekly average.
 
 Smart Timing replaces that single-shot purchase with a sequence of smaller buys ("tranches") spread across the user's purchase window, with each tranche timed to fire on a price dip rather than at an arbitrary moment.
 
@@ -54,9 +54,9 @@ The algorithm's prime directive is: by the end of the window, the user must have
 
 To enforce this, every window has a **failsafe checkpoint** at a configurable point, somewhere in the latter portion of the window. If, at that checkpoint, not all tranches have fired, the algorithm enters failsafe mode:
 
-- Any unfired tranches fire immediately at the prevailing market price.
-- If price is below the window's opening price, the failsafe fires the remaining tranches as a single buy.
-- If price is above the opening price, the failsafe waits for any small dip below the current reference and then fires.
+- If price is below the window's opening price, the failsafe may fire the remaining tranches as a single buy.
+- If price is above the opening price, the failsafe may wait briefly for a small dip below the current reference.
+- If that dip does not occur before the hard failsafe point, the remaining tranches are instructed anyway.
 
 Either way, the user gets their full DCA amount within the window. Failsafe ensures Smart Timing never silently underspends.
 
