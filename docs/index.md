@@ -30,8 +30,8 @@ Partners keep the customer relationship, account system, custody, funding, compl
 
 1. **[Link a partner user](/concepts#partner-user)** — call `POST /partner/v1/users` after the user opts in.
 2. **[Create a Smart Timing plan](/concepts#partner-plan)** — call `POST /partner/v1/plans` with the user's DCA parameters.
-3. **[Poll for due executions](/api-reference/executions-due)** — call `GET /partner/v1/executions/due` on a regular cadence and execute any returned instructions.
-4. **[Confirm execution outcomes](/api-reference/confirm-execution)** — call `POST /partner/v1/executions/{id}/confirm` after each trade attempt.
+3. **[Poll for due executions](/api/executions-due)** — call `GET /partner/v1/executions/due` on a regular cadence and execute any returned instructions.
+4. **[Confirm execution outcomes](/api/confirm-execution)** — call `POST /partner/v1/executions/{id}/confirm` after each trade attempt.
 
 ## Where to go next
 
@@ -39,7 +39,7 @@ Partners keep the customer relationship, account system, custody, funding, compl
 - **[Authentication](/authentication)** — API keys, environments, rotation, and security.
 - **[Core Concepts](/concepts)** — the data model and how Smart Timing plans flow through the system.
 - **[Smart Timing](/smart-timing)** — how the algorithm works at a conceptual level.
-- **[API Reference](/api-reference/health)** — full endpoint reference with curl examples.
+- **[API Reference](/api/health)** — full endpoint reference with curl examples.
 
 ## Getting access
 

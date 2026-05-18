@@ -148,7 +148,7 @@ curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5
 
 Failed executions cause SatStacker to refund the reserved budget back to the plan's window. The Smart Timing engine's catchup logic will pick it up on a subsequent tick or roll it into the failsafe at end of window.
 
-See [Confirm Execution](/api-reference/confirm-execution) for the full schema, partial-fill handling, idempotency rules, and error codes.
+See [Confirm Execution](/api/confirm-execution) for the full schema, partial-fill handling, idempotency rules, and error codes.
 
 ## What's next
 
@@ -158,4 +158,4 @@ You now have the full flow working end-to-end:
 - **Billing visibility** — call `GET /partner/v1/billing/monthly?month=YYYY-MM` to see usage and fees for any billing month.
 - **Per-user reconciliation** — `GET /partner/v1/billing/monthly/users` returns volume by user for finance review.
 
-Continue to [Authentication](/authentication) for details on API key formats and security, or jump to the [API Reference](/api-reference/health) for full endpoint documentation.
+Continue to [Authentication](/authentication) for details on API key formats and security, or jump to the [API Reference](/api/health) for full endpoint documentation.
