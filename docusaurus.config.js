@@ -8,7 +8,7 @@ const { themes: prismThemes } = require('prism-react-renderer');
 const config = {
   title: 'SatStacker Engine',
   tagline: 'Smart Timing for exchanges and Bitcoin platforms',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/icon-1024.png',
 
   // Production URL of your site
   url: 'https://docs.satstacker.app',
@@ -51,7 +51,7 @@ const config = {
         title: 'SatStacker Engine',
         logo: {
           alt: 'SatStacker',
-          src: 'img/logo.svg',
+          src: 'img/icon-1024.png',
         },
         items: [
           {
@@ -93,7 +93,7 @@ const config = {
         additionalLanguages: ['bash', 'json', 'powershell', 'python'],
       },
       colorMode: {
-        defaultMode: 'light',
+        defaultMode: 'dark',
         disableSwitch: false,
         respectPrefersColorScheme: true,
       },

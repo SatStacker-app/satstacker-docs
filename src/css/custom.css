@@ -1,8 +1,21 @@
 /**
- * SatStacker Engine docs - custom theme
- * Bitcoin orange accent on a clean professional base
+ * SatStacker Engine docs theme.
+ * Matches the SatStacker app aesthetic:
+ *   - Dark, near-black background
+ *   - Bitcoin orange (#F7931A) as the single accent
+ *   - Subtle bordered cards on a slightly elevated surface
+ *   - Inter for body, JetBrains Mono for code
  */
 
+/* ───────────────────────────────────────────────────────────── */
+/* Fonts                                                         */
+/* ───────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Light mode (kept for the toggle, but dark is the default)     */
+/* ───────────────────────────────────────────────────────────── */
 :root {
   /* Bitcoin orange */
   --ifm-color-primary: #F7931A;
@@ -13,14 +26,26 @@
   --ifm-color-primary-lighter: #FAB050;
   --ifm-color-primary-lightest: #FBCB85;
 
-  --ifm-code-font-size: 90%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-font-family-base: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ifm-heading-font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
 
-  --ifm-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --ifm-heading-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ifm-code-font-size: 0.9rem;
+  --ifm-font-weight-bold: 700;
+  --ifm-heading-font-weight: 700;
+  --ifm-h1-font-size: 2.5rem;
+  --ifm-h2-font-size: 1.75rem;
+  --ifm-h3-font-size: 1.35rem;
+
+  --docusaurus-highlighted-code-line-bg: rgba(247, 147, 26, 0.1);
 }
 
+
+/* ───────────────────────────────────────────────────────────── */
+/* Dark mode — the SatStacker look                               */
+/* ───────────────────────────────────────────────────────────── */
 [data-theme='dark'] {
+  /* Bitcoin orange (unchanged) */
   --ifm-color-primary: #F7931A;
   --ifm-color-primary-dark: #E07D0A;
   --ifm-color-primary-darker: #C46E08;
@@ -29,15 +54,294 @@
   --ifm-color-primary-lighter: #FAB050;
   --ifm-color-primary-lightest: #FBCB85;
 
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  /* Background tiers - inspired by the SatStacker app */
+  --ifm-background-color: #0B0B0E;
+  --ifm-background-surface-color: #14141A;
+  --ifm-color-emphasis-0: #0B0B0E;
+  --ifm-color-emphasis-100: #14141A;
+  --ifm-color-emphasis-200: #1C1C24;
+  --ifm-color-emphasis-300: #2A2A36;
+  --ifm-color-emphasis-400: #3A3A48;
+  --ifm-color-emphasis-500: #5C5C70;
+  --ifm-color-emphasis-600: #8B8BA0;
+  --ifm-color-emphasis-700: #B0B0C0;
+  --ifm-color-emphasis-800: #D0D0DC;
+  --ifm-color-emphasis-900: #F0F0F4;
+  --ifm-color-emphasis-1000: #FFFFFF;
+
+  --ifm-font-color-base: #E5E5EC;
+  --ifm-heading-color: #FFFFFF;
+  --ifm-link-color: #F7931A;
+  --ifm-link-hover-color: #F9A53D;
+
+  /* Cards, navbar, sidebar surfaces */
+  --ifm-navbar-background-color: rgba(11, 11, 14, 0.85);
+  --ifm-footer-background-color: #0B0B0E;
+  --ifm-card-background-color: #14141A;
+
+  /* Borders */
+  --ifm-toc-border-color: #1C1C24;
+  --ifm-hr-border-color: #1C1C24;
+
+  /* Code blocks */
+  --prism-background-color: #14141A;
+  --ifm-code-background: #1C1C24;
+  --docusaurus-highlighted-code-line-bg: rgba(247, 147, 26, 0.12);
+
+  /* Scrollbars */
+  --ifm-scrollbar-thumb-background-color: #2A2A36;
+  --ifm-scrollbar-track-background-color: #0B0B0E;
 }
 
-/* Tighten code block padding */
-.theme-code-block {
-  font-size: 0.9rem;
+
+/* ───────────────────────────────────────────────────────────── */
+/* Layout & typography refinements                               */
+/* ───────────────────────────────────────────────────────────── */
+html, body {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  letter-spacing: -0.005em;
 }
 
-/* Make the API reference sidebar a bit more compact */
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  letter-spacing: -0.02em;
+}
+
+.markdown h1 {
+  font-weight: 800;
+}
+
+.markdown h2 {
+  margin-top: 2.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+
+/* Slightly more breathing room for body text */
+.markdown > p {
+  line-height: 1.7;
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Navbar - frosted, subtle border                               */
+/* ───────────────────────────────────────────────────────────── */
+.navbar {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .navbar {
+  background-color: rgba(11, 11, 14, 0.85);
+}
+
+.navbar__title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.navbar__link {
+  font-weight: 500;
+}
+
+.navbar__link--active {
+  color: var(--ifm-color-primary);
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Sidebar — compact and clear                                   */
+/* ───────────────────────────────────────────────────────────── */
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--ifm-color-emphasis-200) !important;
+}
+
+.menu {
+  padding: 1rem 0.5rem !important;
+  font-weight: 500;
+}
+
 .menu__link {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.menu__link:hover {
+  background-color: var(--ifm-color-emphasis-200);
+}
+
+.menu__link--active {
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+  background-color: rgba(247, 147, 26, 0.08);
+}
+
+[data-theme='dark'] .menu__link--active {
+  background-color: rgba(247, 147, 26, 0.12);
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Cards / containers                                            */
+/* ───────────────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  background-color: var(--ifm-card-background-color);
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.card:hover {
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Code blocks                                                   */
+/* ───────────────────────────────────────────────────────────── */
+.theme-code-block,
+pre {
+  border-radius: 10px !important;
+  font-size: 0.875rem;
+}
+
+[data-theme='dark'] .theme-code-block {
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+code {
+  border-radius: 4px;
+  font-size: 0.875em;
+  padding: 0.15rem 0.4rem;
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Admonitions — match the rounded-card feel                     */
+/* ───────────────────────────────────────────────────────────── */
+.theme-admonition,
+.alert {
+  border-radius: 10px !important;
+  border-left-width: 3px !important;
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Tables                                                        */
+/* ───────────────────────────────────────────────────────────── */
+.markdown table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.markdown table th {
+  font-weight: 600;
+  background-color: var(--ifm-color-emphasis-100);
+}
+
+[data-theme='dark'] .markdown table th {
+  background-color: var(--ifm-color-emphasis-200);
+}
+
+.markdown table th,
+.markdown table td {
+  border-color: var(--ifm-color-emphasis-200);
+  padding: 0.75rem 1rem;
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Buttons                                                       */
+/* ───────────────────────────────────────────────────────────── */
+.button--primary {
+  background-color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+  color: #0B0B0E;
+  font-weight: 600;
+}
+
+.button--primary:hover {
+  background-color: var(--ifm-color-primary-light);
+  border-color: var(--ifm-color-primary-light);
+  color: #0B0B0E;
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Footer                                                        */
+/* ───────────────────────────────────────────────────────────── */
+.footer--dark {
+  background-color: var(--ifm-footer-background-color);
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.footer__title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.footer__link-item {
+  font-weight: 500;
+  color: var(--ifm-color-emphasis-800);
+}
+
+.footer__link-item:hover {
+  color: var(--ifm-color-primary);
+}
+
+.footer__copyright {
+  color: var(--ifm-color-emphasis-600);
+  font-size: 0.85rem;
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Logo sizing in the navbar                                     */
+/* ───────────────────────────────────────────────────────────── */
+.navbar__logo {
+  height: 32px;
+  margin-right: 0.5rem;
+}
+
+.navbar__logo img {
+  height: 100%;
+  width: auto;
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* TOC right column                                              */
+/* ───────────────────────────────────────────────────────────── */
+.table-of-contents__link {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.table-of-contents__link:hover,
+.table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+}
+
+
+/* ───────────────────────────────────────────────────────────── */
+/* Pagination (Next / Previous)                                  */
+/* ───────────────────────────────────────────────────────────── */
+.pagination-nav__link {
+  border-radius: 10px;
+  border-color: var(--ifm-color-emphasis-200);
+  transition: border-color 180ms ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
 }
