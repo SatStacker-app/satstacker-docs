@@ -112,6 +112,26 @@ Each instruction is **leased to you for 5 minutes** when returned. If you do not
 
 Recommended polling cadence: **once every 60 seconds at the partner level**, not per user. See [Rate Limits](/rate-limits) for guidance.
 
+### Optional: register a webhook
+
+You can register a webhook to be notified when new executions are available:
+
+```bash
+curl -X POST https://api.satstacker.app/partner/v1/webhooks \
+  -H "Authorization: Bearer sse_test_YOUR_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/satstacker/webhook"
+  }'
+```
+
+Webhooks are a latency optimization. Your worker should still poll `GET /partner/v1/executions/due` once every 60 seconds as a fallback.
+
+When your webhook receives `executions.available`, immediately poll `/partner/v1/executions/due`. Do not treat the webhook payload itself as an execution instruction.
+
+See [Webhooks](/webhooks) for signature verification and delivery behavior.
+
+
 You can only confirm an execution after it has been returned by `GET /partner/v1/executions/due`. Returning an execution marks it as `sent` and starts the lease. Confirming an execution that is still `pending` returns `409 Conflict`.
 
 ## Step 5 — Confirm execution outcomes

@@ -36,6 +36,9 @@ Each returned execution is leased for 5 minutes. If your worker crashes or does 
 
 Always dedupe execution attempts on your side using `idempotency_key`.
 
+If you use webhooks, treat them as a wake-up signal only. On `executions.available`, poll `/partner/v1/executions/due` immediately, then continue the regular 60-second polling loop as fallback.
+
+
 ## Confirmation retries
 
 `POST /partner/v1/executions/{execution_id}/confirm` is safe to retry with the exact same payload.
