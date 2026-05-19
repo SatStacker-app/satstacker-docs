@@ -7,6 +7,15 @@ sidebar_position: 10
 
 This page tracks partner-facing changes to SatStacker Engine.
 
+## 2026-05-19
+
+### Added
+
+- Partner webhooks for `executions.available`.
+- `POST /partner/v1/webhooks` to register a webhook URL.
+- `GET /partner/v1/webhooks` to view webhook registration and delivery status.
+- `DELETE /partner/v1/webhooks` to unregister a webhook.
+
 ## 2026-05-18
 
 Initial private partner integration release.

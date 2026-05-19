@@ -51,11 +51,11 @@ Sandbox keys are typically issued within one business day. Production keys are i
 API keys never expire and can be used to perform financial transactions on your account. Treat them with the same care as production database credentials:
 
 - **Never commit keys to source control.** Use environment variables or a secrets manager.
-- **Never log key values.** SatStacker logs the trailing 6 characters of any key in audit trails — never the full key.
+- **Never log key values.** SatStacker logs the trailing 6 characters of any key in audit trails, never the full key.
 - **Never share keys across environments.** Sandbox and production should always use different keys.
 - **Restrict key access** to systems and personnel who need it.
 
-SatStacker stores only a SHA-256 hash of your key — the raw key is shown to you exactly once at issuance time. If a key is lost, you must request a new one (we cannot recover it).
+SatStacker stores only a SHA-256 hash of your key. The raw key is shown to you exactly once at issuance time. If a key is lost, you must request a new one (we cannot recover it).
 
 ## Key rotation
 
@@ -95,7 +95,7 @@ A request with a valid key but for a partner whose account is not active returns
 }
 ```
 
-This typically indicates an issue with your account status — contact **partners@satstacker.app**.
+This typically indicates an issue with your account status — contact **support@satstacker.app**.
 
 ## Tenant isolation
 

@@ -13,7 +13,7 @@ Production partners with higher expected throughput should coordinate expected r
 
 | Endpoint | Recommendation |
 |---|---|
-| `GET /partner/v1/executions/due` | Poll once every 60 seconds per partner environment. Do not poll once per user. |
+| `GET /partner/v1/executions/due` | Poll once every 60 seconds per partner environment. If using webhooks, poll immediately after receiving `executions.available` and keep the 60-second poll as fallback. |
 | `POST /partner/v1/executions/{execution_id}/confirm` | Confirm immediately after each trade attempt. Safe to retry the same confirmation payload. |
 | `POST /partner/v1/users` | Call when a user opts in or when user metadata/consent changes. |
 | `POST /partner/v1/plans` | Call when a plan is created or updated. Avoid sending unchanged plans on a tight loop. |
