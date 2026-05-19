@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "https://api.satstacker.app",
-      "description": "SatStacker Engine API"
+      "description": "Production"
     }
   ],
   "paths": {
@@ -18,7 +18,7 @@
           "Partner API"
         ],
         "summary": "Partner Health",
-        "description": "Public health check \u2014 no auth required.",
+        "description": "Public health check. No authentication required.",
         "operationId": "health",
         "responses": {
           "200": {
@@ -37,8 +37,8 @@
         "tags": [
           "Partner API"
         ],
-        "summary": "Whoami",
-        "description": "Returns the authenticated partner. Useful for integration testing.",
+        "summary": "Verify Credentials",
+        "description": "Returns the authenticated partner and API key environment. Useful for integration testing.",
         "operationId": "me",
         "parameters": [],
         "responses": {
@@ -46,9 +46,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PartnerMeOut"
-                }
+                "schema": {}
               }
             }
           },
@@ -75,7 +73,8 @@
         "tags": [
           "Partner API"
         ],
-        "summary": "Create Or Link Partner User",
+        "summary": "Create or Link Partner User",
+        "description": "Creates or updates a partner user after they opt in to Smart Timing.",
         "operationId": "users",
         "parameters": [],
         "requestBody": {
@@ -123,6 +122,7 @@
           "Partner API"
         ],
         "summary": "Create Partner Plan",
+        "description": "Creates or updates a Smart Timing DCA plan for a linked partner user.",
         "operationId": "plans",
         "parameters": [],
         "requestBody": {
@@ -170,6 +170,7 @@
           "Partner API"
         ],
         "summary": "Get Due Executions",
+        "description": "Returns due Smart Timing execution instructions and leases them to the partner.",
         "operationId": "executions-due",
         "parameters": [
           {
@@ -195,7 +196,7 @@
                   "items": {
                     "$ref": "#/components/schemas/ExecutionInstructionOut"
                   },
-                  "title": "Response Get Due Executions Partner V1 Executions Due Get"
+                  "title": "Response Executions-Due"
                 }
               }
             }
@@ -224,6 +225,7 @@
           "Partner API"
         ],
         "summary": "Confirm Execution",
+        "description": "Records the outcome of a leased execution instruction.",
         "operationId": "confirm-execution",
         "parameters": [
           {
@@ -251,9 +253,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfirmExecutionOut"
-                }
+                "schema": {}
               }
             }
           },
@@ -281,6 +281,7 @@
           "Partner API"
         ],
         "summary": "Monthly Billing Report",
+        "description": "Returns monthly partner billing totals for a billing period.",
         "operationId": "billing-monthly",
         "parameters": [
           {
@@ -301,9 +302,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MonthlyBillingReportOut"
-                }
+                "schema": {}
               }
             }
           },
@@ -331,6 +330,7 @@
           "Partner API"
         ],
         "summary": "Monthly Billing User Breakdown",
+        "description": "Returns per-user monthly executed volume for reconciliation.",
         "operationId": "billing-monthly-users",
         "parameters": [
           {
@@ -374,9 +374,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MonthlyBillingUsersOut"
-                }
+                "schema": {}
               }
             }
           },
@@ -917,274 +915,6 @@
           "type"
         ],
         "title": "ValidationError"
-      },
-      "PartnerMeOut": {
-        "type": "object",
-        "title": "PartnerMeOut",
-        "required": [
-          "partner_slug",
-          "partner_name",
-          "status",
-          "environment"
-        ],
-        "properties": {
-          "partner_slug": {
-            "type": "string",
-            "title": "Partner Slug"
-          },
-          "partner_name": {
-            "type": "string",
-            "title": "Partner Name"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "environment": {
-            "type": "string",
-            "enum": [
-              "test",
-              "live"
-            ],
-            "title": "Environment"
-          }
-        }
-      },
-      "ConfirmExecutionOut": {
-        "type": "object",
-        "title": "ConfirmExecutionOut",
-        "required": [
-          "ok",
-          "execution_id",
-          "status",
-          "partner_order_id"
-        ],
-        "properties": {
-          "ok": {
-            "type": "boolean",
-            "title": "Ok"
-          },
-          "execution_id": {
-            "type": "string",
-            "title": "Execution Id"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "filled",
-              "partial",
-              "failed",
-              "cancelled"
-            ],
-            "title": "Status"
-          },
-          "partner_order_id": {
-            "type": "string",
-            "title": "Partner Order Id"
-          },
-          "replayed": {
-            "type": "boolean",
-            "title": "Replayed",
-            "default": false
-          }
-        }
-      },
-      "BillingPricingOut": {
-        "type": "object",
-        "title": "BillingPricingOut",
-        "required": [
-          "tier",
-          "subscription_rate_usd_per_user",
-          "volume_rate_bps",
-          "tier_overridden",
-          "subscription_overridden",
-          "volume_overridden"
-        ],
-        "properties": {
-          "tier": {
-            "type": "string",
-            "title": "Tier"
-          },
-          "subscription_rate_usd_per_user": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Subscription Rate Usd Per User"
-          },
-          "volume_rate_bps": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Volume Rate Bps"
-          },
-          "tier_overridden": {
-            "type": "boolean",
-            "title": "Tier Overridden"
-          },
-          "subscription_overridden": {
-            "type": "boolean",
-            "title": "Subscription Overridden"
-          },
-          "volume_overridden": {
-            "type": "boolean",
-            "title": "Volume Overridden"
-          }
-        }
-      },
-      "MonthlyBillingReportOut": {
-        "type": "object",
-        "title": "MonthlyBillingReportOut",
-        "required": [
-          "partner_slug",
-          "month",
-          "period_start",
-          "period_end",
-          "period_status",
-          "active_funded_users",
-          "executed_volume_usd",
-          "executed_trade_count",
-          "pricing",
-          "subscription_fee_total",
-          "volume_fee_total",
-          "total_due"
-        ],
-        "properties": {
-          "partner_slug": {
-            "type": "string",
-            "title": "Partner Slug"
-          },
-          "month": {
-            "type": "string",
-            "title": "Month"
-          },
-          "period_start": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Period Start"
-          },
-          "period_end": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Period End"
-          },
-          "period_status": {
-            "type": "string",
-            "enum": [
-              "in_progress",
-              "closed"
-            ],
-            "title": "Period Status"
-          },
-          "active_funded_users": {
-            "type": "integer",
-            "title": "Active Funded Users"
-          },
-          "executed_volume_usd": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Executed Volume Usd"
-          },
-          "executed_trade_count": {
-            "type": "integer",
-            "title": "Executed Trade Count"
-          },
-          "pricing": {
-            "$ref": "#/components/schemas/BillingPricingOut"
-          },
-          "subscription_fee_total": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Subscription Fee Total"
-          },
-          "volume_fee_total": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Volume Fee Total"
-          },
-          "total_due": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Total Due"
-          }
-        }
-      },
-      "MonthlyBillingUserOut": {
-        "type": "object",
-        "title": "MonthlyBillingUserOut",
-        "required": [
-          "partner_user_id",
-          "executed_volume_usd",
-          "executed_btc",
-          "trade_count"
-        ],
-        "properties": {
-          "partner_user_id": {
-            "type": "string",
-            "title": "Partner User Id"
-          },
-          "executed_volume_usd": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Executed Volume Usd"
-          },
-          "executed_btc": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Executed Btc"
-          },
-          "trade_count": {
-            "type": "integer",
-            "title": "Trade Count"
-          }
-        }
-      },
-      "MonthlyBillingUsersOut": {
-        "type": "object",
-        "title": "MonthlyBillingUsersOut",
-        "required": [
-          "partner_slug",
-          "month",
-          "period_status",
-          "limit",
-          "offset",
-          "count",
-          "users"
-        ],
-        "properties": {
-          "partner_slug": {
-            "type": "string",
-            "title": "Partner Slug"
-          },
-          "month": {
-            "type": "string",
-            "title": "Month"
-          },
-          "period_status": {
-            "type": "string",
-            "enum": [
-              "in_progress",
-              "closed"
-            ],
-            "title": "Period Status"
-          },
-          "limit": {
-            "type": "integer",
-            "title": "Limit"
-          },
-          "offset": {
-            "type": "integer",
-            "title": "Offset"
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count"
-          },
-          "users": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MonthlyBillingUserOut"
-            },
-            "title": "Users"
-          }
-        }
       }
     },
     "securitySchemes": {
