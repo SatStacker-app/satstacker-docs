@@ -10,7 +10,7 @@ This guide walks through a complete sandbox integration end-to-end. The goal is 
 ## Prerequisites
 
 - A sandbox API key from SatStacker (request via **support@satstacker.app**)
-- A way to make HTTPS requests — curl examples are shown throughout
+- A way to make HTTPS requests. Curl examples are shown throughout
 - A test user inside your platform with consent to enable Smart Timing
 
 ## Step 1 — Verify your credentials

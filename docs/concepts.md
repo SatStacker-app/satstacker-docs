@@ -62,7 +62,7 @@ Disabling a user has two cascading effects:
 - All of the user's `active` plans are set to `paused`.
 - All `pending` and `sent` executions for those plans are set to `cancelled`. Partners polling `/executions/due` will not receive cancelled executions.
 
-To re-enable the user, send the same endpoint with `{"status": "linked"}`. Note that re-enabling does not automatically reactivate the user's plans — the partner must re-send each plan with `status: "active"` to resume.
+To re-enable the user, send the same endpoint with `{"status": "linked"}`. Note that re-enabling does not automatically reactivate the user's plans, the partner must re-send each plan with `status: "active"` to resume.
 
 ## Partner Plan
 
@@ -101,7 +101,7 @@ Common update scenarios:
 
 **Change frequency.** User wants to switch from weekly to bi-weekly. POST with `frequency: "bi-weekly"`. Window resets.
 
-**Pause without cancelling.** Set `status: "paused"`. The plan stops generating executions but its history and budget state are preserved. To resume, POST again with `status: "active"` — this counts as reactivation and resets the window.
+**Pause without cancelling.** Set `status: "paused"`. The plan stops generating executions but its history and budget state are preserved. To resume, POST again with `status: "active"`. This counts as reactivation and resets the window.
 
 **Cancel.** Set `status: "cancelled"`. Plan stops generating executions and any `pending` or `sent` executions are immediately cancelled. Cancelled plans cannot be reactivated. To restart DCA for the same user, create a new plan with a fresh `partner_plan_id`.
 

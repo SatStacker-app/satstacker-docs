@@ -1,12 +1,6 @@
 // @ts-check
 
-let apiSidebar;
-try {
-  apiSidebar = require('./docs/api/sidebar.ts');
-} catch (e) {
-  console.warn('API sidebar not generated yet. Run `npm run gen-api-docs`.');
-  apiSidebar = { default: [] };
-}
+const apiSidebar = require('./docs/api/sidebar');  // ← removed .ts extension
 
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {

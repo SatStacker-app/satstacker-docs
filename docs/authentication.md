@@ -85,7 +85,7 @@ The response always includes:
 WWW-Authenticate: Bearer
 ```
 
-For security reasons, SatStacker returns identical `401` responses for revoked keys, expired keys, malformed keys, and keys belonging to disabled partners. Your application should not attempt to distinguish between these cases — treat any `401` as "this key cannot make this request" and surface it to your operations team.
+For security reasons, SatStacker returns identical `401` responses for revoked keys, expired keys, malformed keys, and keys belonging to disabled partners. Your application should not attempt to distinguish between these cases, so treat any `401` as "this key cannot make this request" and surface it to your operations team.
 
 A request with a valid key but for a partner whose account is not active returns `403 Forbidden`:
 
@@ -95,11 +95,11 @@ A request with a valid key but for a partner whose account is not active returns
 }
 ```
 
-This typically indicates an issue with your account status — contact **support@satstacker.app**.
+This typically indicates an issue with your account status. Contact **support@satstacker.app**.
 
 ## Tenant isolation
 
-API keys are scoped to a specific partner. Every endpoint that returns data automatically filters to your partner's records. You cannot query, modify, or confirm executions belonging to another partner using your key. Attempting to access another partner's `execution_id` returns `404 Not Found` — SatStacker does not confirm or deny the existence of records belonging to other partners.
+API keys are scoped to a specific partner. Every endpoint that returns data automatically filters to your partner's records. You cannot query, modify, or confirm executions belonging to another partner using your key. Attempting to access another partner's `execution_id` returns `404 Not Found`.
 
 ## Sandbox versus production base URLs
 
@@ -109,6 +109,6 @@ Both environments use the same base URL:
 https://api.satstacker.app
 ```
 
-The environment is determined entirely by the API key you present. A `sse_test_*` key always reads from and writes to sandbox data. A `sse_live_*` key always reads from and writes to production data. There is no way to "cross over" — production keys cannot access sandbox data and vice versa.
+The environment is determined entirely by the API key you present. A `sse_test_*` key always reads from and writes to sandbox data. A `sse_live_*` key always reads from and writes to production data. There is no way to "cross over", production keys cannot access sandbox data and vice versa.
 
 This means you can use identical code paths in your integration; only the key value changes between environments.

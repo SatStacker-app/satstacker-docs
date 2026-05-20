@@ -27,7 +27,7 @@ By the end of the window, all tranches must have fired. The user receives their 
 
 Each tranche represents a portion of the window's budget. Tranches are not equal-sized; the algorithm allocates more to earlier opportunities (when there's more window left to recover from a bad fill) and less to later ones.
 
-A tranche fires when **price falls a configured percentage below a reference price**. The reference price is established at the start of the window and may ratchet upward during the window (see [Ratchet](#ratchet) below).
+A tranche fires when **price and metrics hit specific thresholds**. The reference price is established at the start of the window and may change during the window; however the price when the window opened is the anchor price used as a baseline for sats gained metrics.
 
 If a tranche's dip threshold is hit, it fires. If not, it waits. The algorithm runs a check approximately every minute throughout the window.
 
