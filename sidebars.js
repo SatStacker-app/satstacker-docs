@@ -1,6 +1,12 @@
 // @ts-check
 
-const apiSidebar = require('./docs/api/sidebar.ts');
+let apiSidebar;
+try {
+  apiSidebar = require('./docs/api/sidebar.ts');
+} catch (e) {
+  console.warn('API sidebar not generated yet. Run `npm run gen-api-docs`.');
+  apiSidebar = { default: [] };
+}
 
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
@@ -10,13 +16,11 @@ const sidebars = {
     'authentication',
     'concepts',
     'smart-timing',
+    'webhooks',
     'environments',
     'errors',
     'rate-limits',
     'changelog',
-  ],
-
-  apiSidebar: [
     {
       type: 'category',
       label: 'API Reference',
