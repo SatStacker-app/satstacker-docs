@@ -7,6 +7,12 @@ sidebar_position: 4
 
 This page explains the data model SatStacker Engine uses and how a Smart Timing plan flows from creation to executed trades.
 
+## Time zones
+
+All timestamps in SatStacker request bodies and responses are UTC, formatted as ISO 8601 with a `Z` suffix (e.g. `2026-05-15T14:24:32Z`). Convert local timestamps from your venue to UTC before calling SatStacker endpoints.
+
+Date-only fields (such as the `month` parameter on billing endpoints) are interpreted in UTC.
+
 ## Partner
 
 A platform integrating SatStacker Engine. Partners are identified by a `partner_slug` (for display) and an internal partner ID (used in audit trails).
@@ -85,6 +91,22 @@ When you call `POST /partner/v1/plans` for a plan that already exists, the plan'
 
 Otherwise, the editable fields (`smart_timing_enabled`, `status`) are updated and the existing window is preserved. This means a duplicate or retried create call mid-window does not destroy in-flight Smart Timing state.
 
+### Updating a plan
+
+To update a plan's parameters, send `POST /partner/v1/plans` with the same `partner_plan_id` and the new values.
+
+Common update scenarios:
+
+**Change amount.** User wants to go from $100/week to $200/week. POST with `partner_plan_id` unchanged and `amount_usd: "200.00"`. SatStacker resets the buying window (per [window reset rules](#window-reset-behavior)) so the new amount applies cleanly from the moment of update.
+
+**Change frequency.** User wants to switch from weekly to bi-weekly. POST with `frequency: "bi-weekly"`. Window resets.
+
+**Pause without cancelling.** Set `status: "paused"`. The plan stops generating executions but its history and budget state are preserved. To resume, POST again with `status: "active"` — this counts as reactivation and resets the window.
+
+**Cancel.** Set `status: "cancelled"`. Plan stops generating executions and any `pending` or `sent` executions are immediately cancelled. Cancelled plans cannot be reactivated. To restart DCA for the same user, create a new plan with a fresh `partner_plan_id`.
+
+**Toggle Smart Timing off.** Set `smart_timing_enabled: false`. The plan record is preserved but no Smart Timing executions are emitted. Useful for partners offering Smart Timing as an opt-in feature their users can toggle.
+
 ### Plan ownership
 
 A `partner_plan_id` is permanently bound to the `partner_user_id` it was first created under. Attempting to assign the same `partner_plan_id` to a different `partner_user_id` returns `409 Conflict`. To move a plan between users, cancel the existing plan and create a new one with a fresh `partner_plan_id`.
@@ -125,6 +147,33 @@ Trades are written when a partner calls `POST /partner/v1/executions/{id}/confir
 
 For successful trades, SatStacker records `usd_amount`, `btc_amount`, `execution_price`, `executed_at`, and optionally `partner_fee_usd`. For failures, the `failure_reason` is recorded for audit but no financial values are stored.
 
+### Partial fill example
+
+A plan with `amount_usd: 100.00`, weekly cadence, has fired its first tranche. The engine reserved `$33.33` against the plan's window budget and SatStacker emitted an execution with `amount_usd: 33.33`.
+
+Partner attempts to execute on their venue, but only $20.00 of the order is filled before the venue's liquidity tightens. Partner confirms:
+
+```json
+{
+  "partner_order_id": "order_partial_001",
+  "status": "partial",
+  "executed_at": "2026-05-15T14:24:32Z",
+  "usd_amount": "20.00",
+  "btc_amount": "0.00020000",
+  "execution_price": "100000.00"
+}
+```
+
+SatStacker:
+
+- Records a `PartnerTrade` for $20.00 / 0.00020000 BTC
+- Refunds the unfilled $13.33 back to the plan's window budget
+- Marks the execution as `partial` (terminal state)
+
+On the next scheduler tick, the Smart Timing engine notices the plan's window budget recovered. The catchup logic will spend the refunded amount on a subsequent tranche or roll it into the window's failsafe at end of window.
+
+From the partner's perspective, no further action is needed. The engine handles the catchup automatically.
+
 The `partner_order_id` field links each trade back to the partner's own internal order/trade record. SatStacker enforces uniqueness on `(partner, environment, partner_order_id)`, so the same `partner_order_id` cannot be used to confirm two different executions in the same environment.
 
 ## How a Smart Timing plan flows through the system
@@ -152,3 +201,20 @@ All API endpoints are automatically scoped to the partner identified by your API
 - `GET /billing/monthly` returns only your usage.
 
 This is enforced at the database query level, not just the application layer.
+
+## Cascade behavior reference
+
+Common operations and their side effects on related records:
+
+| Action | User effect | Plan effect | Execution effect |
+|---|---|---|---|
+| `POST /users` with new ID | created as `linked` | none | none |
+| `POST /users` with existing ID | metadata updated | none | none |
+| `PATCH /users/{id}` with `status=disabled` | → `disabled` | all `active` plans → `paused` | all `pending`/`sent` → `cancelled` |
+| `PATCH /users/{id}` with `status=linked` | → `linked` | no change (still `paused`) | no change |
+| `POST /plans` with new ID | none | created as `active` | none |
+| `POST /plans` with `status=cancelled` | none | → `cancelled` | all `pending`/`sent` → `cancelled` |
+| `POST /plans` with `status=paused` | none | → `paused` | no change to existing executions |
+| Window naturally expires | none | window rolls forward | new executions will appear in next cycle |
+
+Re-enabling a disabled user does **not** automatically reactivate their plans. To resume, re-POST each plan with `status: "active"`.

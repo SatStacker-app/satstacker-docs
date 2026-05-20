@@ -112,6 +112,21 @@ If you try to reuse a `partner_plan_id` for a different user:
 }
 ```
 
+## Confirmation field requirements by status
+
+The required fields on `POST /partner/v1/executions/{execution_id}/confirm` depend on the `status` value:
+
+| Status | partner_order_id | usd_amount | btc_amount | execution_price | partner_fee_usd | failure_reason |
+|---|---|---|---|---|---|---|
+| `filled` | required | required | required | required | optional | ignored |
+| `partial` | required | required | required | required | optional | ignored |
+| `failed` | required | ignored | ignored | ignored | ignored | recommended |
+| `cancelled` | required | ignored | ignored | ignored | ignored | optional |
+
+Fields marked `ignored` may be included in the request body but are not stored. Fields marked `required` will return `422 Unprocessable Entity` if missing.
+
+`partner_order_id` is always required so that retried confirmations can be deduped, regardless of outcome.
+
 ## Execution confirmation errors
 
 You must first retrieve an execution from `GET /partner/v1/executions/due` before confirming it. Confirming a `pending` execution returns:

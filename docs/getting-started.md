@@ -133,6 +133,14 @@ When your webhook receives `executions.available`, immediately poll `/partner/v1
 
 See [Webhooks](/webhooks) for signature verification and delivery behavior.
 
+If no executions are pending, the response is an empty array:
+
+```json
+[]
+```
+
+This is the normal response when the engine has not decided to fire any tranches recently. Continue polling on your regular cadence.
+
 ## Step 5 — Confirm execution outcomes
 
 After your platform executes the trade, or fails to, report the outcome back. For a successful fill:
@@ -168,6 +176,59 @@ curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5
 Failed executions cause SatStacker to refund the reserved budget back to the plan's window. The Smart Timing engine's catchup logic will pick it up on a subsequent tick or roll it into the failsafe at end of window.
 
 See [Confirm Execution](/api/confirm-execution) for the full schema, partial-fill handling, idempotency rules, and error codes.
+
+## A complete execution lifecycle
+
+Here's what a single execution looks like from creation to confirmation, with realistic timing:
+
+**T+0:00** — Smart Timing engine decides a tranche should fire. SatStacker writes a `PartnerExecution` row with `status: pending`. If you have a webhook registered, SatStacker fires `executions.available` to your endpoint.
+
+**T+0:01** — Your webhook handler returns `200 OK` and triggers your worker to poll.
+
+**T+0:02** — Your worker calls `GET /partner/v1/executions/due`. SatStacker returns the execution with `status` updated to `sent` and `lease_expires_at` set to `T+5:00`.
+
+**T+0:03** — Your worker executes the buy on your venue. Receives an internal order ID like `your_order_001`.
+
+**T+0:05** — Your worker calls `POST /partner/v1/executions/{execution_id}/confirm`:
+
+```json
+{
+  "partner_order_id": "your_order_001",
+  "status": "filled",
+  "executed_at": "2026-05-15T14:24:32Z",
+  "usd_amount": "33.33",
+  "btc_amount": "0.00033330",
+  "execution_price": "100000.00",
+  "partner_fee_usd": "0.00"
+}
+```
+
+Response:
+
+```json
+{
+  "ok": true,
+  "execution_id": "exec_8e1d3f9a2b4c5d6e7f8a9b0c",
+  "status": "filled",
+  "partner_order_id": "your_order_001"
+}
+```
+
+**T+0:08** — Brief network blip. Your worker times out waiting for the confirm response and retries with the identical payload.
+
+**T+0:09** — SatStacker detects the duplicate, returns success without creating a second trade:
+
+```json
+{
+  "ok": true,
+  "execution_id": "exec_8e1d3f9a2b4c5d6e7f8a9b0c",
+  "status": "filled",
+  "partner_order_id": "your_order_001",
+  "replayed": true
+}
+```
+
+The execution is now `filled`. The trade appears in your monthly billing report. The plan's window state advances; the next tranche or window roll happens automatically.
 
 ## What's next
 

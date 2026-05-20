@@ -13,6 +13,7 @@ const sidebars = {
   docsSidebar: [
     'index',
     'getting-started',
+    'verify-key',
     'authentication',
     'concepts',
     'smart-timing',

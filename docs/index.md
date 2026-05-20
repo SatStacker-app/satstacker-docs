@@ -40,6 +40,7 @@ Partners keep the customer relationship, account system, custody, funding, compl
 - **[Core Concepts](/concepts)** — the data model and how Smart Timing plans flow through the system.
 - **[Smart Timing](/smart-timing)** — how the algorithm works at a conceptual level.
 - **[API Reference](/api/health)** — full endpoint reference with curl examples.
+- **OpenAPI specification** — available at `https://docs.satstacker.app/openapi/partner-api.json` for use with Postman, Insomnia, or client code generators.
 
 ## Getting access
 
