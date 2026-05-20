@@ -86,6 +86,14 @@ A disabled or deleted partner user cannot create active plans:
 }
 ```
 
+If you attempt to disable a partner user that doesn't exist:
+
+```json
+{
+  "detail": "Partner user not found."
+}
+```
+
 ## Plan errors
 
 If you create a plan for a user that has not been linked yet:
@@ -165,5 +173,6 @@ Safe to retry:
 - `POST /partner/v1/users` with the same `partner_user_id`
 - `POST /partner/v1/plans` with the same `partner_plan_id`
 - `POST /partner/v1/executions/{execution_id}/confirm` with the exact same payload
+- `POST /partner/v1/webhooks`, `GET /partner/v1/webhooks`, `DELETE /partner/v1/webhooks` — webhook registration is idempotent per partner environment
 
 Do not retry by placing another market order. If a trade executed but confirmation failed, retry the confirmation request with the same `partner_order_id`.

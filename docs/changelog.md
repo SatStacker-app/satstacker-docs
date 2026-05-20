@@ -15,6 +15,7 @@ This page tracks partner-facing changes to SatStacker Engine.
 - `POST /partner/v1/webhooks` to register a webhook URL.
 - `GET /partner/v1/webhooks` to view webhook registration and delivery status.
 - `DELETE /partner/v1/webhooks` to unregister a webhook.
+- `PATCH /partner/v1/users/{partner_user_id}` to enable or disable a partner user. Disabling cascades to pause active plans and cancel pending executions.
 
 ## 2026-05-18
 

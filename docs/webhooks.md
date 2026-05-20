@@ -1,6 +1,6 @@
 ---
 title: Webhooks
-sidebar_position: 8
+sidebar_position: 6
 ---
 
 # Webhooks
@@ -189,7 +189,7 @@ def verify_satstacker_signature(raw_body: bytes, signature_header: str, secret: 
     return hmac.compare_digest(expected_header, signature_header or "")
 ```
 
-Important: verify the signature against the raw request body, before parsing or re-serializing the JSON.
+Important: verify the signature against the raw request body, before parsing or re-serializing the JSON. If your framework parses the JSON body automatically, you must access the raw bytes before parsing. In FastAPI, call `await request.body()` first, then `await request.json()`.
 
 ## Recommended handler behavior
 
@@ -201,6 +201,8 @@ When your webhook endpoint receives `executions.available`:
 4. Execute and confirm returned instructions using your existing flow.
 
 You should continue polling once every 60 seconds as a fallback. Webhooks reduce latency, but polling remains the reliable delivery mechanism.
+
+Webhook payloads are wake-up signals only. The actual execution instructions are fetched through the authenticated `/executions/due` endpoint, so replayed webhook payloads cannot cause duplicate trades or otherwise affect plan state.
 
 ## Example handler
 

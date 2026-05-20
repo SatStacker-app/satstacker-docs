@@ -40,6 +40,24 @@ Partner users are **idempotent on `(partner_slug, environment, partner_user_id)`
 
 The user's `partner_user_id` is permanent. Once registered with SatStacker under a given partner, it cannot be reassigned to a different user.
 
+### Disabling a user
+
+To disable a partner user, send `PATCH /partner/v1/users/{partner_user_id}` with `{"status": "disabled"}`:
+
+```bash
+curl -X PATCH https://api.satstacker.app/partner/v1/users/user_abc_123 \
+  -H "Authorization: Bearer sse_test_YOUR_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "disabled"}'
+```
+
+Disabling a user has two cascading effects:
+
+- All of the user's `active` plans are set to `paused`.
+- All `pending` and `sent` executions for those plans are set to `cancelled`. Partners polling `/executions/due` will not receive cancelled executions.
+
+To re-enable the user, send the same endpoint with `{"status": "linked"}`. Note that re-enabling does not automatically reactivate the user's plans — the partner must re-send each plan with `status: "active"` to resume.
+
 ## Partner Plan
 
 A Smart Timing DCA plan created by a partner user.
@@ -58,7 +76,7 @@ Partner plans are **idempotent on `(partner_slug, environment, partner_plan_id)`
 
 ### Window reset behavior
 
-When you call `POST /partner/v1/plans` for a plan that already exists, the plan's current buying window (and all associated state — `unspent_fiat_usd`, `tranches`, ratchet reference) is **only reset** when one of the following is true:
+When you call `POST /partner/v1/plans` for a plan that already exists, the plan's current buying window and all associated tranche state is **only reset** when one of the following is true:
 
 - The `amount_usd` changed from its previous value.
 - The `frequency` changed.
@@ -115,16 +133,15 @@ The `partner_order_id` field links each trade back to the partner's own internal
 2. Partner calls **`POST /users`** to register the user with SatStacker.
 3. Partner calls **`POST /plans`** to create the Smart Timing plan.
 4. The **SatStacker scheduler** runs continuously. For each active plan whose `next_run` has elapsed, it invokes the Smart Timing engine.
-5. The engine may decide a buy should fire. If so, it writes a `PartnerExecution` with `status=pending` and reserves the tranche amount against the plan's `unspent_fiat_usd`.
-6. If the partner has registered a webhook, SatStacker sends an optional `executions.available` notification. The webhook is only a wake-up signal; it is not the execution instruction.
-7. The partner polls **`GET /executions/due`** on a regular cadence, or immediately after receiving a webhook. SatStacker returns pending executions (and any sent-but-unconfirmed executions whose lease has expired), marking each as `sent` with a 5-minute lease.
-8. Partner executes the buy on their side using their own custody and market access.
-9. Partner calls **`POST /executions/{id}/confirm`** with the outcome:
+5. The engine may decide a buy should fire. If so, it writes a `PartnerExecution` with `status=pending` and reserves the tranche amount against the plan's window budget.
+6. The partner polls **`GET /executions/due`** on a regular cadence. SatStacker returns pending executions (and any sent-but-unconfirmed executions whose lease has expired), marking each as `sent` with a 5-minute lease. If the partner has registered a webhook, SatStacker also sends an `executions.available` notification, allowing the partner to poll immediately rather than waiting for the next interval.
+7. Partner executes the buy on their side using their own custody and market access.
+8. Partner calls **`POST /executions/{id}/confirm`** with the outcome:
    - **`filled`** — trade succeeded. SatStacker records the trade and refunds any unspent budget difference (e.g., if the partner spent slightly less than the reserved amount).
    - **`partial`** — partial fill. SatStacker records the trade and refunds the unfilled portion to the plan's window, allowing the engine to catch up on subsequent ticks.
    - **`failed`** — trade failed. SatStacker refunds the full reservation and records the failure reason.
    - **`cancelled`** — partner decided not to execute. Same refund behavior as failed.
-10. The cycle repeats until the plan's buying window expires, at which point the window rolls forward and `unspent_fiat_usd` resets to the plan's full `amount_usd`.
+9. The cycle repeats until the plan's buying window expires, at which point the window rolls forward and the plan's window budget resets to the full `amount_usd`.
 
 ## Tenancy and isolation
 

@@ -112,6 +112,8 @@ Each instruction is **leased to you for 5 minutes** when returned. If you do not
 
 Recommended polling cadence: **once every 60 seconds at the partner level**, not per user. See [Rate Limits](/rate-limits) for guidance.
 
+You can only confirm an execution after it has been returned by `GET /partner/v1/executions/due`. Returning an execution marks it as `sent` and starts the lease. Confirming an execution that is still `pending` returns `409 Conflict`.
+
 ### Optional: register a webhook
 
 You can register a webhook to be notified when new executions are available:
@@ -130,9 +132,6 @@ Webhooks are a latency optimization. Your worker should still poll `GET /partner
 When your webhook receives `executions.available`, immediately poll `/partner/v1/executions/due`. Do not treat the webhook payload itself as an execution instruction.
 
 See [Webhooks](/webhooks) for signature verification and delivery behavior.
-
-
-You can only confirm an execution after it has been returned by `GET /partner/v1/executions/due`. Returning an execution marks it as `sent` and starts the lease. Confirming an execution that is still `pending` returns `409 Conflict`.
 
 ## Step 5 — Confirm execution outcomes
 
