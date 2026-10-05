@@ -18,6 +18,7 @@ const ROOT = path.resolve(__dirname, '..');
 const SOURCE_URL = 'https://api.satstacker.app/openapi.json';
 const SPEC_PATH = path.join(ROOT, 'openapi', 'partner-api.json');
 const PUBLIC_PATH = path.join(ROOT, 'static', 'openapi', 'partner-api.json');
+const PUBLIC_ALIAS_PATH = path.join(ROOT, 'static', 'partner-api.json');
 const OVERLAY_PATH = path.join(ROOT, 'openapi', 'partner-docs-overlay.json');
 const METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace']);
 
@@ -184,6 +185,8 @@ async function main(args = process.argv.slice(2)) {
     writeAtomic(SPEC_PATH, text);
   }
   writeAtomic(PUBLIC_PATH, text);
+  // Keep the older public download URL on the same reviewed contract.
+  writeAtomic(PUBLIC_ALIAS_PATH, text);
   console.log(`Ready: ${operations(spec).length} partner operations; source openapi/partner-api.json; download /openapi/partner-api.json`);
 }
 

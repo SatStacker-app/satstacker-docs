@@ -204,11 +204,11 @@ When your webhook endpoint receives `executions.available`:
 
 You should continue polling once every 60 seconds as a fallback. Webhooks reduce latency, but polling remains the reliable delivery mechanism.
 
-Webhook payloads are wake-up signals only. The actual execution instructions are fetched through the authenticated `/executions/due` endpoint, so replayed webhook payloads cannot cause duplicate trades or otherwise affect plan state.
+Webhook payloads are wake-up signals only. Replayed notifications can wake your worker again. Prevent duplicate orders by deduplicating the instructions fetched through the authenticated `/executions/due` endpoint using their opaque `idempotency_key`, including after lease redelivery. A valid signature authenticates the body; it does not establish that the notification is new.
 
 ## Example handler
 
-Example FastAPI handler:
+Example FastAPI handler for your platform's receiving endpoint. It verifies and acknowledges notifications; implement the worker wake-up where marked. Your worker must fetch instructions, submit orders through your exchange execution adapter, and confirm definitive outcomes with SatStacker.
 
 ```python
 import hashlib
