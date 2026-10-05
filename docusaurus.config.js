@@ -8,7 +8,7 @@ const { themes: prismThemes } = require('prism-react-renderer');
 const config = {
   title: 'SatStacker Engine',
   tagline: 'Smart Timing for exchanges and Bitcoin platforms',
-  favicon: 'img/icon-1024.png',
+  favicon: 'img/satstacker-favicon-v2.png',
 
   // Production URL of your site
   url: 'https://docs.satstacker.app',
