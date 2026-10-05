@@ -60,7 +60,7 @@ curl -X PATCH https://api.satstacker.app/partner/v1/users/user_abc_123 \
 Disabling a user has two cascading effects:
 
 - All of the user's `active` plans are set to `paused`.
-- All `pending` and `sent` executions for those plans are set to `cancelled`. Partners polling `/executions/due` will not receive cancelled executions.
+- Instructions that have never been delivered are cancelled and their current-window reservations refunded. Delivered instructions remain settleable and can be redelivered after lease expiry; confirm their final exchange outcomes.
 
 To re-enable the user, send the same endpoint with `{"status": "linked"}`. Note that re-enabling does not automatically reactivate the user's plans, the partner must re-send each plan with `status: "active"` to resume.
 
@@ -75,7 +75,7 @@ A Smart Timing DCA plan created by a partner user.
 | `amount_usd` | decimal string | USD purchase amount per buying window. Min `1.00`, max `1,000,000.00`. |
 | `frequency` | string | `daily`, `weekly`, or `bi-weekly`. |
 | `smart_timing_enabled` | boolean | If false, the plan exists but generates no Smart Timing executions. |
-| `start_date` | ISO datetime \| null | Window anchor. If omitted, defaults to creation time. |
+| `start_date` | ISO datetime \| null | Create-only window anchor. If omitted, defaults to creation time. Omit on updates; changing it returns 409. |
 | `status` | string | `active`, `paused`, or `cancelled`. |
 
 Partner plans are **idempotent on `(partner_slug, environment, partner_plan_id)`**. Re-sending updates the plan, but there are specific rules about when the buying window resets — see [Window reset behavior](#window-reset-behavior) below.
@@ -86,8 +86,11 @@ When you call `POST /partner/v1/plans` for a plan that already exists, the plan'
 
 - The `amount_usd` changed from its previous value.
 - The `frequency` changed.
-- The plan was previously `paused` or `cancelled` and is being reactivated.
+- The plan was previously `paused` and is being reactivated. Cancelled plans cannot be reactivated.
+- Smart Timing changes from disabled to enabled.
 - The plan has no `window_start` yet (defensive).
+
+A reset returns `409` if any delivered execution remains unresolved. Confirm it before retrying the update. Existing-plan resets start at the update time and receive a new `window_id`. Never-delivered instructions are cancelled before a reset.
 
 Otherwise, the editable fields (`smart_timing_enabled`, `status`) are updated and the existing window is preserved. This means a duplicate or retried create call mid-window does not destroy in-flight Smart Timing state.
 
@@ -101,11 +104,11 @@ Common update scenarios:
 
 **Change frequency.** User wants to switch from weekly to bi-weekly. POST with `frequency: "bi-weekly"`. Window resets.
 
-**Pause without cancelling.** Set `status: "paused"`. The plan stops generating executions but its history and budget state are preserved. To resume, POST again with `status: "active"`. This counts as reactivation and resets the window.
+**Pause without cancelling.** Set `status: "paused"`. The plan stops generating executions. Never-delivered instructions are cancelled and refunded; history is preserved. Delivered instructions still require final confirmation. To resume, POST again with `status: "active"`. This counts as reactivation and resets the window.
 
-**Cancel.** Set `status: "cancelled"`. Plan stops generating executions and any `pending` or `sent` executions are immediately cancelled. Cancelled plans cannot be reactivated. To restart DCA for the same user, create a new plan with a fresh `partner_plan_id`.
+**Cancel.** Set `status: "cancelled"`. Plan stops generating executions. Never-delivered instructions are cancelled; delivered instructions retain their reservation and confirmation path. Cancelled plans cannot be reactivated. To restart DCA for the same user, create a new plan with a fresh `partner_plan_id`.
 
-**Toggle Smart Timing off.** Set `smart_timing_enabled: false`. The plan record is preserved but no Smart Timing executions are emitted. Useful for partners offering Smart Timing as an opt-in feature their users can toggle.
+**Toggle Smart Timing off.** Set `smart_timing_enabled: false`. The plan record is preserved. Never-delivered instructions are cancelled and no new Smart Timing instructions are generated. Delivered instructions still require confirmation. Re-enabling resets the window after those outcomes are settled. Useful for partners offering Smart Timing as an opt-in feature their users can toggle.
 
 ### Plan ownership
 
@@ -149,7 +152,7 @@ For successful trades, SatStacker records `usd_amount`, `btc_amount`, `execution
 
 ### Partial fill example
 
-A plan with `amount_usd: 100.00`, weekly cadence, has fired its first tranche. The engine reserved `$33.33` against the plan's window budget and SatStacker emitted an execution with `amount_usd: 33.33`.
+A weekly bear plan with `amount_usd: 100.00` has fired its first 50% tranche. The engine reserved `$50.00` against the plan's window budget and SatStacker emitted an execution with `amount_usd: 50.00`.
 
 Partner attempts to execute on their venue, but only $20.00 of the order is filled before the venue's liquidity tightens. Partner confirms:
 
@@ -167,12 +170,12 @@ Partner attempts to execute on their venue, but only $20.00 of the order is fill
 SatStacker:
 
 - Records a `PartnerTrade` for $20.00 / 0.00020000 BTC
-- Refunds the unfilled $13.33 back to the plan's window budget
+- Refunds the unfilled $30.00 back to the plan's window budget
 - Marks the execution as `partial` (terminal state)
 
-On the next scheduler tick, the Smart Timing engine notices the plan's window budget recovered. The catchup logic will spend the refunded amount on a subsequent tranche or roll it into the window's failsafe at end of window.
+The normal tranche advances after this terminal attempt. The returned $30 remains available for a later remainder signal in the same window. Normal subsequent tranches retain their scheduled allocation, capped by the available balance. A partial/failed remainder can receive a new instruction ID on a later eligible signal. An old-window refund never funds a new window.
 
-From the partner's perspective, no further action is needed. The engine handles the catchup automatically.
+After confirming this terminal result, continue polling. SatStacker manages the same-window remainder; successful deployment still depends on prompt execution and confirmation.
 
 The `partner_order_id` field links each trade back to the partner's own internal order/trade record. SatStacker enforces uniqueness on `(partner, environment, partner_order_id)`, so the same `partner_order_id` cannot be used to confirm two different executions in the same environment.
 
@@ -187,7 +190,7 @@ The `partner_order_id` field links each trade back to the partner's own internal
 7. Partner executes the buy on their side using their own custody and market access.
 8. Partner calls **`POST /executions/{id}/confirm`** with the outcome:
    - **`filled`** — trade succeeded. SatStacker records the trade and refunds any unspent budget difference (e.g., if the partner spent slightly less than the reserved amount).
-   - **`partial`** — partial fill. SatStacker records the trade and refunds the unfilled portion to the plan's window, allowing the engine to catch up on subsequent ticks.
+   - **`partial`** — partial fill. SatStacker records the trade and refunds the unfilled portion to the plan's window, leaving the returned dollars available to a later same-window remainder signal.
    - **`failed`** — trade failed. SatStacker refunds the full reservation and records the failure reason.
    - **`cancelled`** — partner decided not to execute. Same refund behavior as failed.
 9. The cycle repeats until the plan's buying window expires, at which point the window rolls forward and the plan's window budget resets to the full `amount_usd`.
@@ -210,11 +213,14 @@ Common operations and their side effects on related records:
 |---|---|---|---|
 | `POST /users` with new ID | created as `linked` | none | none |
 | `POST /users` with existing ID | metadata updated | none | none |
-| `PATCH /users/{id}` with `status=disabled` | → `disabled` | all `active` plans → `paused` | all `pending`/`sent` → `cancelled` |
+| `PATCH /users/{id}` with `status=disabled` | → `disabled` | all `active` plans → `paused` | never-delivered → `cancelled`; delivered require confirmation |
 | `PATCH /users/{id}` with `status=linked` | → `linked` | no change (still `paused`) | no change |
 | `POST /plans` with new ID | none | created as `active` | none |
-| `POST /plans` with `status=cancelled` | none | → `cancelled` | all `pending`/`sent` → `cancelled` |
-| `POST /plans` with `status=paused` | none | → `paused` | no change to existing executions |
+| `POST /plans` with `status=cancelled` | none | → `cancelled` | never-delivered → `cancelled`; delivered require confirmation |
+| `POST /plans` with `status=paused` | none | → `paused` | never-delivered → `cancelled`; delivered require confirmation |
 | Window naturally expires | none | window rolls forward | new executions will appear in next cycle |
 
 Re-enabling a disabled user does **not** automatically reactivate their plans. To resume, re-POST each plan with `status: "active"`.
+### Window identity and asynchronous delivery
+
+Instructions include `window_id`, `window_start` and `tranche_key` (a zero-based normal tranche index or `failsafe`). Treat idempotency keys as opaque. At most one unresolved instruction exists per plan. Lease redelivery retains its identity; a new attempt after a terminal remainder outcome gets a new identity. A new window does not issue a buy while any older delivered order remains unresolved. Expired unused budgets are not added to subsequent windows. Missing prices, exchange failures or delayed confirmation can prevent full window deployment.

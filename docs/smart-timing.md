@@ -5,74 +5,99 @@ sidebar_position: 5
 
 # Smart Timing
 
-Smart Timing is SatStacker's tranche-based DCA algorithm. This page explains how it works at a conceptual level so your product, engineering, and customer-facing teams can understand and explain it.
+SatStacker decides when to deploy a recurring Bitcoin budget within a daily
+(24-hour), weekly (7-day), or bi-weekly (14-day) purchasing window. Partners
+execute the resulting instructions on their own exchange. SatStacker does not
+hold customer funds, and the exchange does not need to reproduce the algorithm.
 
-## The problem with naive DCA
+## Window initialization and regime
 
-Most recurring Bitcoin purchases fire at the same time every week or month, regardless of where price sits. Over years that's fine, the dollar-cost-averaging principle smooths things out. But within any individual purchase, the user has no protection against buying at a local high.
+New, reset and rolled windows use production strategy v2. Future windows are
+staged first; the scheduler activates them at or after their opening once price
+data is available. The opening regime compares the window opening price with
+the previous 200 completed UTC daily closes. Insufficient history falls back to
+bear; missing opening data defers activation.
 
-If a user's weekly buy fires on Monday at 9am, they pay Monday's 9am price. If Bitcoin happens to be 4% above its weekly average at that moment, the user paid more than they would have at the weekly average.
+The regime is frozen for the entire window. It is not recomputed continuously.
+Existing untagged legacy windows finish using legacy rules and switch at their
+next rollover or an explicit plan reset.
 
-Smart Timing replaces that single-shot purchase with a sequence of smaller buys ("tranches") spread across the user's purchase window, with each tranche timed to fire on a price dip rather than at an arbitrary moment.
+## Normal tranches and reference prices
 
-## How a Smart Timing window works
+Current v2 normal-phase rules are:
 
-A "window" is the time period over which one full DCA cycle is spent. For a user with weekly cadence, the window is 7 days. For bi-weekly, 14 days. For daily, 24 hours.
+| Cadence | Bull allocations / dip targets | Bear allocations / dip targets |
+| --- | --- | --- |
+| Daily | 100% / -2.50% | 100% / -2.25% |
+| Weekly | 100% / -2.00% | 50% / -4.00%, then 50% / -3.00% |
+| Bi-weekly | 40% / -1.00%, 40% / -1.00%, 20% / -1.00% | 40% / -4.00%, 40% / -3.00%, 20% / -3.00% |
 
-The user's full DCA amount is divided into tranches. At the start of each window, no tranches have fired yet. As the window progresses, the algorithm watches the price and fires tranches when conditions are favorable.
+Weekly bull uses the original opening reference throughout its normal phase.
+Other normal phases can ratchet the reference upward after a 0.50% rise. The
+engine allows one normal tranche per eligible check. Each normal instruction
+is capped by the actual available window balance.
 
-By the end of the window, all tranches must have fired. The user receives their full DCA amount, just spread across multiple buys at different price points rather than concentrated in one.
+The scheduler wakes approximately every 60 seconds by default. An individual
+plan is normally checked about every three minutes, controlled by
+`TRANCHE_DELAY_MINUTES`. Delivery and confirmation delays can postpone checks.
 
-## Tranches
+## Final smart phase and hard remainder deadline
 
-Each tranche represents a portion of the window's budget. Tranches are not equal-sized; the algorithm allocates more to earlier opportunities (when there's more window left to recover from a bad fill) and less to later ones.
+The final phase freezes a checkpoint reference and seeks a 0.50% pullback.
+The hard deadline stays fixed, even when the pullback does not happen.
 
-A tranche fires when **price and metrics hit specific thresholds**. The reference price is established at the start of the window and may change during the window; however the price when the window opened is the anchor price used as a baseline for sats gained metrics.
+| Cadence | Bull final phase / hard deadline | Bear final phase / hard deadline |
+| --- | --- | --- |
+| Daily | 45%–55% / 55% | 50%–60% / 60% |
+| Weekly | 60%–65% / 65% | 50%–55% / 55% |
+| Bi-weekly | 90%–95% / 95% | 50%–55% / 55% |
 
-If a tranche's dip threshold is hit, it fires. If not, it waits. The algorithm runs a check approximately every minute throughout the window.
+These percentages are elapsed fractions of the full cadence window. Bi-weekly
+bull also retains an earlier smart failsafe from 70% to 90%: it can instruct the
+remainder below the opening price or after a 1% dip from the trailing reference.
+Weekly bull can still take its normal -2% opportunity at the 60% boundary.
 
-## Regime detection
+Every remainder instruction uses exactly the available unreserved USD balance,
+not the original plan amount. Thresholds are implementation details and may
+change with future strategy versions.
 
-Bitcoin behaves differently in bull markets and bear markets. In a sustained uptrend, waiting too long for a dip means buying at progressively higher prices. In a bear market, the same patience is rewarded.
+## Reservations, outcomes and retries
 
-Smart Timing detects which regime the market is in by examining longer-term price trends. The detected regime affects:
+Only one unresolved instruction is allowed per plan. Its dollars are reserved
+when it is created. A normal instruction advances its tranche on any terminal
+outcome: filled, partial, failed or cancelled. A partial fill returns the
+unfilled reservation; a failed/cancelled attempt returns the full reservation.
+These dollars remain available for a later remainder signal in that same window.
 
-- How aggressive the dip thresholds are. Bull markets get tighter thresholds (smaller dips fire tranches) so the user doesn't miss out on the trend.
-- When the failsafe activates. Bull markets failsafe earlier in the window.
+A terminal partial/failed/cancelled remainder can produce a new instruction
+with a new `execution_id` and `idempotency_key` on a later eligible signal.
+Expired leases redeliver the original instruction with its original identity.
+Always deduplicate exchange orders by the instruction's idempotency key.
 
-Regime detection is recomputed continuously, so a market that shifts will see Smart Timing adapt.
+Confirm only final exchange outcomes. A network timeout with an uncertain order
+result is not evidence that the trade failed. Reconcile the original exchange
+order and retry its confirmation; do not submit a second market order.
 
-## Ratchet
+## Window boundaries and stopping plans
 
-Within a single window, if price rallies significantly above the original reference, the algorithm bumps the reference price upward. Subsequent tranches then fire on dips from the new, higher reference rather than the original starting price.
+Instructions include `window_id`, `window_start` and `tranche_key`. Window IDs
+identify distinct budget generations, including resets with an unchanged anchor.
+Refunds and tranche updates apply only to the instruction's own current window.
+An old-window confirmation cannot increase a newer window's available balance.
 
-This protects against the failure mode where a window starts low, rallies hard, and the algorithm refuses to fire because price never returns to the original starting level. The ratchet says: if the trend has clearly moved up, accept the new reality and look for dips relative to that.
+Pause, cancellation, user disable, Smart Timing off and window expiry cancel
+instructions that have never been delivered. Delivered instructions remain
+available for redelivery and confirmation because the exchange may already
+have executed them. A new window can be staged while an old delivered order is
+unresolved, but it cannot generate a buy until that outcome is confirmed.
 
-## Failsafe
+The algorithm targets spending within the window; exchange failures, missing
+price data, delayed polling or unresolved orders can prevent full deployment.
+An expired window's unused budget is not automatically added to the next budget.
+Partners should monitor unresolved orders and confirm them promptly.
 
-The algorithm's prime directive is: by the end of the window, the user must have received their full DCA amount. Smart Timing is an optimization over naive DCA, not a market-timing system that might skip purchases.
+## Partner responsibilities
 
-To enforce this, every window has a **failsafe checkpoint** at a configurable point, somewhere in the latter portion of the window. If, at that checkpoint, not all tranches have fired, the algorithm enters failsafe mode:
-
-- If price is below the window's opening price, the failsafe may fire the remaining tranches as a single buy.
-- If price is above the opening price, the failsafe may wait briefly for a small dip below the current reference.
-- If that dip does not occur before the hard failsafe point, the remaining tranches are instructed anyway.
-
-Either way, the user gets their full DCA amount within the window. Failsafe ensures Smart Timing never silently underspends.
-
-## What partners need to know
-
-For integration purposes, the specifics of the algorithm are abstracted away. From a partner's perspective:
-
-- You create a plan with an amount, frequency, and `smart_timing_enabled: true`.
-- SatStacker decides when each tranche should fire and emits execution instructions.
-- You execute the tranches as they arrive.
-- By the end of each window, the full `amount_usd` will have been instructed (in some combination of tranches), assuming successful execution on your side.
-
-The number of tranches per window, their relative sizing, the dip thresholds, the regime parameters, the ratchet step, and the failsafe checkpoint are SatStacker implementation details. They are tuned based on historical backtests and may evolve over time. We will notify partners in advance of any algorithm changes that affect execution patterns materially.
-
-## What partners don't need to do
-
-- You don't decide *when* to fire tranches. SatStacker tells you.
-- You don't sum tranches across a window. Each execution instruction is a complete, standalone buy.
-- You don't need to understand the algorithm to integrate.
+Create/update the plan, poll for instructions, execute each instruction once,
+and report its final outcome. Webhooks are a wake-up signal; polling remains the
+source of truth. SatStacker handles timing, tranche state and window reservations.

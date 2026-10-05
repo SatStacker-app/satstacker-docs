@@ -85,7 +85,7 @@ The response always includes:
 WWW-Authenticate: Bearer
 ```
 
-For security reasons, SatStacker returns identical `401` responses for revoked keys, expired keys, malformed keys, and keys belonging to disabled partners. Your application should not attempt to distinguish between these cases, so treat any `401` as "this key cannot make this request" and surface it to your operations team.
+For security reasons, SatStacker returns identical `401` responses for revoked keys, expired keys, and malformed keys. Your application should not attempt to distinguish between these cases, so treat any `401` as "this key cannot make this request" and surface it to your operations team.
 
 A request with a valid key but for a partner whose account is not active returns `403 Forbidden`:
 

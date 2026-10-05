@@ -121,8 +121,8 @@ The required fields on `POST /partner/v1/executions/{execution_id}/confirm` depe
 |---|---|---|---|---|---|---|
 | `filled` | required | required | required | required | optional | ignored |
 | `partial` | required | required | required | required | optional | ignored |
-| `failed` | required | ignored | ignored | ignored | ignored | recommended |
-| `cancelled` | required | ignored | ignored | ignored | ignored | optional |
+| `failed` | required | ignored | ignored | ignored | ignored | required |
+| `cancelled` | required | ignored | ignored | ignored | ignored | required |
 
 Fields marked `ignored` may be included in the request body but are not stored. Fields marked `required` will return `422 Unprocessable Entity` if missing.
 
@@ -192,3 +192,9 @@ Safe to retry:
 - `POST /partner/v1/webhooks`, `GET /partner/v1/webhooks`, `DELETE /partner/v1/webhooks` — webhook registration is idempotent per partner environment
 
 Do not retry by placing another market order. If a trade executed but confirmation failed, retry the confirmation request with the same `partner_order_id`.
+
+## Partner v2 lifecycle conflicts
+
+`409 Conflict` also applies when reactivating a cancelled plan, changing an existing `start_date`, or resetting a window while a delivered execution is unresolved. Confirm the original instruction before changing amount/frequency or restarting Smart Timing. Never retry by placing a second exchange order.
+
+For filled/partial confirmations, `usd_amount` must be positive with at most two decimal places, `btc_amount` must be positive with at most eight decimal places, and execution price must remain positive after cent rounding. Fees must be nonnegative. Invalid values return 422.

@@ -86,7 +86,7 @@ curl https://api.satstacker.app/partner/v1/executions/due \
   -H "Authorization: Bearer sse_test_YOUR_KEY_HERE"
 ```
 
-A successful response returns an array of due execution instructions:
+A successful response returns an array of due execution instructions. The example is a $100 weekly bear window with a 50% first tranche; execution patterns depend on the frozen opening regime:
 
 ```json
 [
@@ -98,9 +98,12 @@ A successful response returns an array of due execution instructions:
     "side": "buy",
     "asset": "BTC",
     "spend_currency": "USD",
-    "amount_usd": "33.33",
+    "amount_usd": "50.00",
     "reason": "smart_timing",
-    "idempotency_key": "plan_xyz_456:2026-05-15T08:00:00+00:00:0",
+    "window_id": "0123456789abcdef0123456789abcdef",
+    "window_start": "2026-05-15T08:00:00Z",
+    "tranche_key": "0",
+    "idempotency_key": "plan_xyz_456:2026-05-15T08:00:00+00:00:0123456789abcdef0123456789abcdef:0:attempt-1",
     "created_at": "2026-05-15T14:23:00Z",
     "lease_expires_at": "2026-05-15T14:28:00Z",
     "delivered_count": 1
@@ -153,8 +156,8 @@ curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5
     "partner_order_id": "your_internal_order_id_001",
     "status": "filled",
     "executed_at": "2026-05-15T14:24:32Z",
-    "usd_amount": "33.33",
-    "btc_amount": "0.00033330",
+    "usd_amount": "50.00",
+    "btc_amount": "0.00050000",
     "execution_price": "100000.00",
     "partner_fee_usd": "0.00"
   }'
@@ -173,7 +176,7 @@ curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5
   }'
 ```
 
-Failed executions cause SatStacker to refund the reserved budget back to the plan's window. The Smart Timing engine's catchup logic will pick it up on a subsequent tick or roll it into the failsafe at end of window.
+For a current-window execution, a failure returns the reserved budget to that window. Normal tranche attempts advance on any terminal result; returned dollars remain available for a later remainder signal. A terminal remainder can receive a new instruction ID on a later signal. Old-window confirmations do not fund a newer window. Only report failed when the exchange order is definitively unsuccessful; reconcile uncertain timeouts against the original order.
 
 See [Confirm Execution](/api/confirm-execution) for the full schema, partial-fill handling, idempotency rules, and error codes.
 
@@ -196,8 +199,8 @@ Here's what a single execution looks like from creation to confirmation, with re
   "partner_order_id": "your_order_001",
   "status": "filled",
   "executed_at": "2026-05-15T14:24:32Z",
-  "usd_amount": "33.33",
-  "btc_amount": "0.00033330",
+  "usd_amount": "50.00",
+  "btc_amount": "0.00050000",
   "execution_price": "100000.00",
   "partner_fee_usd": "0.00"
 }
