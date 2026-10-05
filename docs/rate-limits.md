@@ -14,7 +14,7 @@ Production partners with higher expected throughput should coordinate expected r
 | Endpoint | Recommendation |
 |---|---|
 | `GET /partner/v1/executions/due` | Poll once every 60 seconds per partner environment. If using webhooks, poll immediately after receiving `executions.available` and keep the 60-second poll as fallback. |
-| `POST /partner/v1/executions/{execution_id}/confirm` | Confirm immediately after each trade attempt. Safe to retry the same confirmation payload. |
+| `POST /partner/v1/executions/{execution_id}/confirm` | Confirm once the exchange outcome is definitive. Safe to retry the exact saved final payload. |
 | `POST /partner/v1/users` | Call when a user opts in or when user metadata/consent changes. |
 | `POST /partner/v1/plans` | Call when a plan is created or updated. Avoid sending unchanged plans on a tight loop. |
 | `GET /partner/v1/billing/monthly` | Use for finance dashboards and reconciliation, not high-frequency polling. |
@@ -73,6 +73,12 @@ Suggested retry schedule:
 ```
 
 For execution confirmation, continue retrying until you receive a successful response or a non-retryable `4xx` error.
+
+## Registration and batch handling
+
+`POST /webhooks` rotates the secret on every successful call. Exclude it from generic retry loops; coordinate registration recovery as described in [Webhooks](/webhooks).
+
+`/executions/due` defaults to 50 instructions and supports `limit` up to 500. Choose a batch size you can safely execute and confirm within the lease. If a batch is full, drain further work with bounded concurrency and shared deduplication. Coordinate higher throughput before launch. See [Operations and Reconciliation](/operations).
 
 ## Future hard limits
 

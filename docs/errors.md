@@ -117,14 +117,18 @@ If you try to reuse a `partner_plan_id` for a different user:
 
 The required fields on `POST /partner/v1/executions/{execution_id}/confirm` depend on the `status` value:
 
-| Status | partner_order_id | usd_amount | btc_amount | execution_price | partner_fee_usd | failure_reason |
-|---|---|---|---|---|---|---|
-| `filled` | required | required | required | required | optional | ignored |
-| `partial` | required | required | required | required | optional | ignored |
-| `failed` | required | ignored | ignored | ignored | ignored | required |
-| `cancelled` | required | ignored | ignored | ignored | ignored | required |
+| Status | partner_order_id | executed_at | usd_amount | btc_amount | execution_price | partner_fee_usd | failure_reason |
+|---|---|---|---|---|---|---|---|
+| `filled` | required | required | required | required | required | optional, nonnegative | omit |
+| `partial` | required | required | required | required | required | optional, nonnegative | omit |
+| `failed` | required | optional | not recorded | not recorded | not recorded | stored as zero | required |
+| `cancelled` | required | optional | not recorded | not recorded | not recorded | stored as zero | required |
 
-Fields marked `ignored` may be included in the request body but are not stored. Fields marked `required` will return `422 Unprocessable Entity` if missing.
+For failed/cancelled attempts, omit financial fields and send an optional UTC
+`executed_at` for the definitive outcome; if omitted, SatStacker records the
+confirmation time. Required fields return `422` when absent. For filled/partial,
+omit `failure_reason`; it is not stored and including it can conflict with an
+otherwise identical replay.
 
 `partner_order_id` is always required so that retried confirmations can be deduped, regardless of outcome.
 
@@ -189,7 +193,9 @@ Safe to retry:
 - `POST /partner/v1/users` with the same `partner_user_id`
 - `POST /partner/v1/plans` with the same `partner_plan_id`
 - `POST /partner/v1/executions/{execution_id}/confirm` with the exact same payload
-- `POST /partner/v1/webhooks`, `GET /partner/v1/webhooks`, `DELETE /partner/v1/webhooks` — webhook registration is idempotent per partner environment
+- `GET /partner/v1/webhooks` and `DELETE /partner/v1/webhooks`
+
+`POST /partner/v1/webhooks` is a secret-rotating operation. Every successful call generates a new secret, including a call with an unchanged URL. It does not belong in a generic automatic retry loop. If its response is lost, coordinate a new registration and persist that successful response's secret before updating your verifier.
 
 Do not retry by placing another market order. If a trade executed but confirmation failed, retry the confirmation request with the same `partner_order_id`.
 
@@ -198,3 +204,5 @@ Do not retry by placing another market order. If a trade executed but confirmati
 `409 Conflict` also applies when reactivating a cancelled plan, changing an existing `start_date`, or resetting a window while a delivered execution is unresolved. Confirm the original instruction before changing amount/frequency or restarting Smart Timing. Never retry by placing a second exchange order.
 
 For filled/partial confirmations, `usd_amount` must be positive with at most two decimal places, `btc_amount` must be positive with at most eight decimal places, and execution price must remain positive after cent rounding. Fees must be nonnegative. Invalid values return 422.
+
+See [Amounts, Fees and Execution Outcomes](/execution-contract) for the all-in fee convention, and [Operations and Reconciliation](/operations) for handling unknown exchange order outcomes.

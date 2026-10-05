@@ -18,8 +18,10 @@ const config = {
   organizationName: 'satstacker',
   projectName: 'satstacker-docs',
 
-  onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
+  onBrokenLinks: 'throw',
+  markdown: {
+    hooks: { onBrokenMarkdownLinks: 'throw' },
+  },
 
   i18n: {
     defaultLocale: 'en',
@@ -81,7 +83,7 @@ const config = {
             title: 'SatStacker',
             items: [
               { label: 'Website', href: 'https://satstacker.app' },
-              { label: 'Status', href: 'https://api.satstacker.app/partner/v1/health' },
+              { label: 'API Health', href: 'https://api.satstacker.app/partner/v1/health' },
             ],
           },
         ],

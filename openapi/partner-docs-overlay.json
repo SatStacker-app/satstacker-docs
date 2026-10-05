@@ -1,0 +1,892 @@
+{
+  "revision": "2026-10-05-partner-v2-all-in",
+  "info": {
+    "title": "SatStacker Engine Partner API",
+    "description": "Embed Smart Timing using partner-scoped test/live API keys. Plan and instruction USD amounts limit total customer debit INCLUDING exchange fees. Confirm actual all-in USD debit and net BTC credited; partner_fee_usd is the fee breakdown already inside that debit. SatStacker does not execute exchange orders. Only final exchange outcomes may be confirmed. Lease redelivery retains identity. See /execution-contract, /sandbox-testing and /operations in the partner docs.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "SatStacker Support",
+      "email": "support@satstacker.app"
+    },
+    "x-documentation-revision": "2026-10-05-partner-v2-all-in"
+  },
+  "externalDocs": {
+    "url": "https://docs.satstacker.app",
+    "description": "Partner integration documentation"
+  },
+  "schemas": {
+    "PartnerHealthOut": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "service": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "status",
+        "service",
+        "time"
+      ]
+    },
+    "PartnerIdentityOut": {
+      "type": "object",
+      "properties": {
+        "partner_slug": {
+          "type": "string"
+        },
+        "partner_name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "test",
+            "live"
+          ]
+        }
+      },
+      "required": [
+        "partner_slug",
+        "partner_name",
+        "status",
+        "environment"
+      ]
+    },
+    "ExecutionConfirmationOut": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "execution_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "filled",
+            "partial",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "partner_order_id": {
+          "type": "string"
+        },
+        "replayed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "execution_id",
+        "status",
+        "partner_order_id"
+      ]
+    },
+    "WebhookDeleteOut": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "partner_slug": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "deleted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "partner_slug",
+        "environment",
+        "deleted"
+      ]
+    },
+    "PartnerPricingOut": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string"
+        },
+        "subscription_rate_usd_per_user": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{2}$",
+          "description": "USD decimal string with two places"
+        },
+        "volume_rate_bps": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{2}$",
+          "description": "USD decimal string with two places"
+        },
+        "tier_overridden": {
+          "type": "boolean"
+        },
+        "subscription_overridden": {
+          "type": "boolean"
+        },
+        "volume_overridden": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tier",
+        "subscription_rate_usd_per_user",
+        "volume_rate_bps",
+        "tier_overridden",
+        "subscription_overridden",
+        "volume_overridden"
+      ]
+    },
+    "MonthlyBillingOut": {
+      "type": "object",
+      "properties": {
+        "partner_slug": {
+          "type": "string"
+        },
+        "month": {
+          "type": "string"
+        },
+        "period_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "period_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "period_status": {
+          "type": "string",
+          "enum": [
+            "closed",
+            "in_progress"
+          ]
+        },
+        "active_funded_users": {
+          "type": "integer"
+        },
+        "executed_volume_usd": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{2}$",
+          "description": "USD decimal string with two places"
+        },
+        "executed_trade_count": {
+          "type": "integer"
+        },
+        "pricing": {
+          "$ref": "#/components/schemas/PartnerPricingOut"
+        },
+        "subscription_fee_total": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{2}$",
+          "description": "USD decimal string with two places"
+        },
+        "volume_fee_total": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{2}$",
+          "description": "USD decimal string with two places"
+        },
+        "total_due": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{2}$",
+          "description": "USD decimal string with two places"
+        }
+      },
+      "required": [
+        "partner_slug",
+        "month",
+        "period_start",
+        "period_end",
+        "period_status",
+        "active_funded_users",
+        "executed_volume_usd",
+        "executed_trade_count",
+        "pricing",
+        "subscription_fee_total",
+        "volume_fee_total",
+        "total_due"
+      ]
+    },
+    "MonthlyBillingUserOut": {
+      "type": "object",
+      "properties": {
+        "partner_user_id": {
+          "type": "string"
+        },
+        "executed_volume_usd": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{2}$",
+          "description": "USD decimal string with two places"
+        },
+        "executed_btc": {
+          "type": "string",
+          "pattern": "^-?\\d+\\.\\d{8}$"
+        },
+        "trade_count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "partner_user_id",
+        "executed_volume_usd",
+        "executed_btc",
+        "trade_count"
+      ]
+    },
+    "MonthlyBillingUsersOut": {
+      "type": "object",
+      "properties": {
+        "partner_slug": {
+          "type": "string"
+        },
+        "month": {
+          "type": "string"
+        },
+        "period_status": {
+          "type": "string",
+          "enum": [
+            "closed",
+            "in_progress"
+          ]
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/MonthlyBillingUserOut"
+          }
+        }
+      },
+      "required": [
+        "partner_slug",
+        "month",
+        "period_status",
+        "limit",
+        "offset",
+        "count",
+        "users"
+      ]
+    },
+    "PartnerErrorOut": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "detail"
+      ]
+    }
+  },
+  "fields": {
+    "ExecutionInstructionOut": {
+      "window_id": "Original budget generation ID; newly generated instructions populate it.",
+      "window_start": "Original UTC window anchor for this instruction.",
+      "tranche_key": "Zero-based normal tranche index or failsafe; informational, not a deduplication key.",
+      "amount_usd": "Maximum total customer debit including exchange fees for this instruction.",
+      "idempotency_key": "Opaque attempt deduplication key; unchanged on lease redelivery. Do not construct or parse."
+    },
+    "PartnerPlanCreate": {
+      "amount_usd": "All-in total customer debit budget per window, including exchange fees.",
+      "start_date": "Create-only UTC anchor; omit for updates. Changing the existing anchor conflicts."
+    },
+    "PartnerPlanOut": {
+      "amount_usd": "All-in USD spending budget including exchange fees.",
+      "unspent_fiat_usd": "Available current-window budget after confirmed all-in debits and open reservations. This is a logical budget, not custody of funds."
+    },
+    "TradeConfirmIn": {
+      "partner_order_id": "Unique exchange order ID, or a unique local attempt ID if no order was placed. Reuse on confirmation replay.",
+      "executed_at": "UTC definitive exchange outcome time, required for filled/partial. Optional for failed/cancelled; omitted value uses confirmation time.",
+      "usd_amount": "Actual total customer debit INCLUDING exchange fees. Positive, at most 2 decimal places; must not exceed reserved amount.",
+      "btc_amount": "Net BTC actually credited, at most 8 decimal places; excludes unrelated subsequent withdrawals.",
+      "execution_price": "Exchange fill price or VWAP before separate fees; stored to cents and positive after rounding.",
+      "partner_fee_usd": "Exchange fee already INCLUDED in usd_amount; not an additional debit. Nonnegative for filled/partial; stored to cents. Failed/cancelled record zero.",
+      "failure_reason": "Required for failed/cancelled. Omit for filled/partial."
+    }
+  },
+  "schemaDescriptions": {
+    "TradeConfirmIn": "Final outcomes only. Conditional required fields are encoded here; the API also enforces decimal precision, positivity, reserved-amount and lifecycle rules. See /execution-contract and /errors."
+  },
+  "conditionalRules": {
+    "TradeConfirmIn": [
+      {
+        "if": {
+          "properties": {
+            "status": {
+              "enum": [
+                "filled",
+                "partial"
+              ]
+            }
+          },
+          "required": [
+            "status"
+          ]
+        },
+        "then": {
+          "required": [
+            "executed_at",
+            "usd_amount",
+            "btc_amount",
+            "execution_price"
+          ],
+          "properties": {
+            "executed_at": {
+              "title": "Executed At",
+              "description": "UTC definitive exchange outcome time, required for filled/partial. Optional for failed/cancelled; omitted value uses confirmation time.",
+              "type": "string",
+              "format": "date-time"
+            },
+            "usd_amount": {
+              "title": "Usd Amount",
+              "description": "Actual total customer debit INCLUDING exchange fees. Positive, at most 2 decimal places; must not exceed reserved amount.",
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                }
+              ]
+            },
+            "btc_amount": {
+              "title": "Btc Amount",
+              "description": "Net BTC actually credited, at most 8 decimal places; excludes unrelated subsequent withdrawals.",
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                }
+              ]
+            },
+            "execution_price": {
+              "title": "Execution Price",
+              "description": "Exchange fill price or VWAP before separate fees; stored to cents and positive after rounding.",
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "status": {
+              "enum": [
+                "failed",
+                "cancelled"
+              ]
+            }
+          },
+          "required": [
+            "status"
+          ]
+        },
+        "then": {
+          "required": [
+            "failure_reason"
+          ],
+          "properties": {
+            "failure_reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        }
+      }
+    ]
+  },
+  "operations": {
+    "health": {
+      "path": "/partner/v1/health",
+      "method": "get",
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerHealthOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "me": {
+      "path": "/partner/v1/me",
+      "method": "get",
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerIdentityOut"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "update-user-status": {
+      "path": "/partner/v1/users/{partner_user_id}",
+      "method": "patch",
+      "description": "Enable or disable a partner user. Disable pauses active plans and cancels/refunds never-delivered instructions. Delivered instructions remain settleable and can be redelivered until final confirmation.",
+      "responses": {
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "register-webhook": {
+      "path": "/partner/v1/webhooks",
+      "method": "post",
+      "description": "Register/reactivate a webhook and generate a new secret EVERY time, including unchanged URLs. Secret appears only in this response. Exclude from generic automatic retries; a lost response requires coordinated re-registration and verifier update.",
+      "responses": {
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "get-webhook": {
+      "path": "/partner/v1/webhooks",
+      "method": "get",
+      "responses": {
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "delete-webhook": {
+      "path": "/partner/v1/webhooks",
+      "method": "delete",
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookDeleteOut"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "users": {
+      "path": "/partner/v1/users",
+      "method": "post",
+      "responses": {
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "plans": {
+      "path": "/partner/v1/plans",
+      "method": "post",
+      "description": "Create or update a full plan representation. amount_usd is the all-in window budget including exchange fees. Cancelled plans are terminal. start_date is create-only. Resets return 409 while a delivered instruction is unresolved. Omitted status/smart_timing_enabled default to active/true.",
+      "responses": {
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Request violates a financial rule",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Record not found in this partner/environment",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting ownership, lifecycle or confirmation",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "executions-due": {
+      "path": "/partner/v1/executions/due",
+      "method": "get",
+      "description": "Lease pending or expired-lease instructions for the authenticated environment. Default lease is five minutes. Redelivery keeps execution_id and idempotency_key. Treat keys as opaque. amount_usd is the maximum total customer debit including exchange fees. Delivered instructions remain settleable after pause/cancel/off. No exchange order is placed by this API call.",
+      "responses": {
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "confirm-execution": {
+      "path": "/partner/v1/executions/{execution_id}/confirm",
+      "method": "post",
+      "description": "Record a definitive exchange outcome. Filled/partial require executed_at, all-in usd_amount, net credited btc_amount and fill execution_price. Fees are already included in usd_amount. Partial is terminal: remaining exchange orders must not still be able to fill. Failed/cancelled require failure_reason and represent zero debit/BTC. Identical final payload replay succeeds; changed outcomes conflict. Never place another buy to retry confirmation.",
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionConfirmationOut"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Request violates a financial rule",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Record not found in this partner/environment",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting ownership, lifecycle or confirmation",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "billing-monthly": {
+      "path": "/partner/v1/billing/monthly",
+      "method": "get",
+      "description": "Monthly aggregates based on executed_at. executed_volume_usd includes the all-in customer debit, including exchange fees; partner fees are separate. closed means the calendar period ended, not an immutable snapshot. Late confirmations can change results. Funded-user count uses plans' current Smart Timing enabled status; headline volume does not apply that plan filter.",
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonthlyBillingOut"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "billing-monthly-users": {
+      "path": "/partner/v1/billing/monthly/users",
+      "method": "get",
+      "description": "Offset-paginated per-user totals based on executed_at. Current smart_timing_enabled status filters plan eligibility, so disabling can affect historical views. Not an order-level audit export. Preserve partner-side month-end snapshots.",
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonthlyBillingUsersOut"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    },
+    "send-user-claim-link": {
+      "path": "/partner/v1/users/{partner_user_id}/claim-link",
+      "method": "post",
+      "responses": {
+        "401": {
+          "description": "Missing, malformed, revoked or invalid API key",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Partner or user not active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerErrorOut"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -28,12 +28,12 @@ SatStacker issues two key formats, distinguishable by prefix:
 
 | Prefix | Environment | Use |
 |--------|-------------|-----|
-| `sse_test_` | Sandbox | All integration testing. Sandbox executions don't move real money. |
+| `sse_test_` | Sandbox | All integration testing. Test records only; route orders to your own simulator, never live infrastructure. |
 | `sse_live_` | Production | Live partner traffic. Production executions reflect actual user trades. |
 
 Both formats follow the pattern `sse_{environment}_{32 random URL-safe characters}`.
 
-The prefix is visible by design, it lets your engineers verify at a glance whether they're hitting the sandbox or production environment before sending real user data. It also lets secret-scanning tools (like GitHub's automatic secret detection) recognize a leaked SatStacker key.
+The prefix is visible by design, it lets your engineers verify at a glance whether they're hitting the sandbox or production environment before sending real user data. Configure your own secret-scanning rules to detect SatStacker key prefixes; do not assume third-party scanners recognize them automatically.
 
 ## Obtaining a key
 
@@ -44,14 +44,14 @@ SatStacker Engine is in private partner integration. To request a sandbox key, e
 - Expected Smart Timing user volume
 - Your primary technical contact
 
-Sandbox keys are typically issued within one business day. Production keys are issued once integration testing is complete and a production launch date is agreed.
+Arrange key issuance with SatStacker during onboarding. Production access follows agreed sandbox acceptance and launch coordination.
 
 ## Key storage
 
-API keys never expire and can be used to perform financial transactions on your account. Treat them with the same care as production database credentials:
+Current keys remain valid until revoked or the partner is disabled; there is no automatic expiry in this API version. Keys authorize access to partner users, plans, instructions and confirmations. Your exchange controls actual trade execution. Treat them with the same care as production database credentials:
 
 - **Never commit keys to source control.** Use environment variables or a secrets manager.
-- **Never log key values.** SatStacker logs the trailing 6 characters of any key in audit trails, never the full key.
+- **Never log key values.** Use only a masked key identifier or trailing suffix when troubleshooting; never include raw credentials.
 - **Never share keys across environments.** Sandbox and production should always use different keys.
 - **Restrict key access** to systems and personnel who need it.
 
@@ -85,7 +85,7 @@ The response always includes:
 WWW-Authenticate: Bearer
 ```
 
-For security reasons, SatStacker returns identical `401` responses for revoked keys, expired keys, and malformed keys. Your application should not attempt to distinguish between these cases, so treat any `401` as "this key cannot make this request" and surface it to your operations team.
+Revoked, unknown or unsupported-prefix keys return `401`. A missing or malformed Authorization header also returns `401`, with a header-format error. Do not depend on identical error strings across these cases. Your application should not attempt to distinguish between these cases, so treat any `401` as "this key cannot make this request" and surface it to your operations team.
 
 A request with a valid key but for a partner whose account is not active returns `403 Forbidden`:
 

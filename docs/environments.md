@@ -38,6 +38,8 @@ Use sandbox for:
 
 Sandbox executions do not represent real user trades unless your own system chooses to execute them against a live venue. Partners should keep sandbox workers isolated from production trading infrastructure.
 
+Sandbox uses normal market-driven timing, not an accelerated test clock. See [Sandbox Testing](/sandbox-testing) for offline client fixtures and genuine end-to-end checks.
+
 ## Production
 
 Production keys start with:
@@ -97,7 +99,7 @@ If you expected production but see `"environment": "test"`, you are using a sand
 
 To move from sandbox to production:
 
-1. Complete sandbox testing.
+1. Complete the [sandbox acceptance checks](/sandbox-testing), including genuine instruction settlement and recovery.
 2. Request a production key from SatStacker.
 3. Deploy the `sse_live_*` key to your production environment.
 4. Confirm `GET /partner/v1/me` returns `"environment": "live"`.

@@ -9,7 +9,7 @@ This page explains the data model SatStacker Engine uses and how a Smart Timing 
 
 ## Time zones
 
-All timestamps in SatStacker request bodies and responses are UTC, formatted as ISO 8601 with a `Z` suffix (e.g. `2026-05-15T14:24:32Z`). Convert local timestamps from your venue to UTC before calling SatStacker endpoints.
+Send UTC timestamps with an explicit offset, preferably `Z`, such as `2026-05-15T14:24:32Z`. Responses use ISO 8601 and may encode UTC as `Z` or `+00:00`; accept both. Do not send timezone-naive values or date-only values for execution timestamps. Convert local venue times to UTC before calling endpoints.
 
 Date-only fields (such as the `month` parameter on billing endpoints) are interpreted in UTC.
 
@@ -72,7 +72,7 @@ A Smart Timing DCA plan created by a partner user.
 |-------|------|-------------|
 | `partner_user_id` | string | The user this plan belongs to. |
 | `partner_plan_id` | string | Your stable plan ID. |
-| `amount_usd` | decimal string | USD purchase amount per buying window. Min `1.00`, max `1,000,000.00`. |
+| `amount_usd` | decimal string | All-in USD spending budget per window, including exchange fees. Defaults: min `1.00`, max `1,000,000.00`; deployment limits may differ. |
 | `frequency` | string | `daily`, `weekly`, or `bi-weekly`. |
 | `smart_timing_enabled` | boolean | If false, the plan exists but generates no Smart Timing executions. |
 | `start_date` | ISO datetime \| null | Create-only window anchor. If omitted, defaults to creation time. Omit on updates; changing it returns 409. |
@@ -95,6 +95,8 @@ A reset returns `409` if any delivered execution remains unresolved. Confirm it 
 Otherwise, the editable fields (`smart_timing_enabled`, `status`) are updated and the existing window is preserved. This means a duplicate or retried create call mid-window does not destroy in-flight Smart Timing state.
 
 ### Updating a plan
+
+`POST /plans` expects a complete plan representation, not a partial PATCH: include the user ID, plan ID, amount and frequency, and send `status` and `smart_timing_enabled` explicitly. If omitted, those two fields default to `active` and `true`. Omit `start_date` on existing-plan updates.
 
 To update a plan's parameters, send `POST /partner/v1/plans` with the same `partner_plan_id` and the new values.
 
@@ -123,22 +125,29 @@ When the Smart Timing engine decides a tranche should execute, it writes a `Part
 | Field | Type | Description |
 |-------|------|-------------|
 | `execution_id` | string | Opaque identifier (`exec_*`). Use this when confirming. |
-| `idempotency_key` | string | Deterministic key derived from plan ID, window start, and tranche index. |
-| `amount_usd` | decimal string | USD amount the partner should spend on this tranche. |
+| `idempotency_key` | string | Opaque deduplication key for one attempt. Stable on lease redelivery; a new terminal-remainder attempt gets a new key. Do not parse or construct it. |
+| `window_id` | string \| null | Budget-generation identity, distinct even for resets at the same timestamp. |
+| `window_start` | ISO datetime \| null | Original opening anchor for this instruction. |
+| `tranche_key` | string \| null | Zero-based normal tranche index or `failsafe`; informational, not a deduplication key. |
+| `amount_usd` | decimal string | Maximum all-in customer debit, including exchange fees, for this instruction. |
 | `reason` | string | `smart_timing` (currently the only value). |
 | `status` | string | `pending`, `sent`, `filled`, `partial`, `failed`, `cancelled`. |
 | `lease_expires_at` | ISO datetime | When the current delivery lease expires. Returned by `GET /executions/due`. |
 | `delivered_count` | integer | Number of times this execution has been delivered to the partner. |
 
+The three window fields are nullable for legacy historical compatibility. Newly generated instructions populate them. See [Amounts, Fees and Execution Outcomes](/execution-contract) for confirmation field definitions.
+
 The lifecycle of an execution:
 
 1. **`pending`** — written by the SatStacker scheduler. Not yet delivered to the partner.
 2. **`sent`** — returned to the partner via `GET /executions/due`. Leased for 5 minutes.
-3. **Terminal** — `filled`, `partial`, `failed`, or `cancelled` based on the partner's confirmation.
+3. **Terminal** — `filled`, `partial`, `failed`, or `cancelled` based on the partner's final confirmation. Never-delivered instructions can also be cancelled by plan/user changes or expiry.
 
 If a `sent` execution is not confirmed before its lease expires, it returns to the eligible pool and is re-delivered on the next `GET /executions/due` poll. The `execution_id` and `idempotency_key` never change between deliveries. Partners should dedupe on either of these.
 
 ## Trade
+
+Report the total customer debit, including fees, and net BTC credited. `partner_fee_usd` is the fee breakdown already within that debit; it is not added to the instruction or charged again.
 
 A record of a partner's actual trade attempt — successful, partial, failed, or cancelled.
 
@@ -152,9 +161,9 @@ For successful trades, SatStacker records `usd_amount`, `btc_amount`, `execution
 
 ### Partial fill example
 
-A weekly bear plan with `amount_usd: 100.00` has fired its first 50% tranche. The engine reserved `$50.00` against the plan's window budget and SatStacker emitted an execution with `amount_usd: 50.00`.
+A weekly bear plan with an all-in `amount_usd: 100.00` has fired its first 50% tranche. The engine reserved `$50.00` against the plan's window budget and SatStacker emitted an execution with `amount_usd: 50.00`.
 
-Partner attempts to execute on their venue, but only $20.00 of the order is filled before the venue's liquidity tightens. Partner confirms:
+The exchange completes only a $20.00 debit and definitively cancels the remaining order. This example has no separately reported exchange fee. Partner confirms:
 
 ```json
 {
@@ -221,6 +230,7 @@ Common operations and their side effects on related records:
 | Window naturally expires | none | window rolls forward | new executions will appear in next cycle |
 
 Re-enabling a disabled user does **not** automatically reactivate their plans. To resume, re-POST each plan with `status: "active"`.
+
 ### Window identity and asynchronous delivery
 
 Instructions include `window_id`, `window_start` and `tranche_key` (a zero-based normal tranche index or `failsafe`). Treat idempotency keys as opaque. At most one unresolved instruction exists per plan. Lease redelivery retains its identity; a new attempt after a terminal remainder outcome gets a new identity. A new window does not issue a buy while any older delivered order remains unresolved. Expired unused budgets are not added to subsequent windows. Missing prices, exchange failures or delayed confirmation can prevent full window deployment.

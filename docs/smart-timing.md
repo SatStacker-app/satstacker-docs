@@ -6,7 +6,8 @@ sidebar_position: 5
 # Smart Timing
 
 SatStacker decides when to deploy a recurring Bitcoin budget within a daily
-(24-hour), weekly (7-day), or bi-weekly (14-day) purchasing window. Partners
+(24-hour), weekly (7-day), or bi-weekly (14-day) purchasing window. Budgets include exchange fees, so a $10 window authorizes
+$10 in total customer debits. See [Amounts, Fees and Execution Outcomes](/execution-contract). Partners
 execute the resulting instructions on their own exchange. SatStacker does not
 hold customer funds, and the exchange does not need to reproduce the algorithm.
 

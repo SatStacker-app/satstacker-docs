@@ -5,13 +5,15 @@ sidebar_position: 2
 
 # Getting Started
 
-This guide walks through a complete sandbox integration end-to-end. The goal is to get from "I have a sandbox API key" to "I've executed a confirmed Smart Timing trade against the sandbox" in under 30 minutes.
+This guide walks through credential verification, user/plan registration, execution polling and final confirmation. Setup can be completed without waiting for a buy. The first real sandbox instruction depends on the shared timing engine and market prices; it is not guaranteed within a fixed number of minutes. Use [Sandbox Testing](/sandbox-testing) for offline client fixtures and end-to-end acceptance checks.
 
 ## Prerequisites
 
 - A sandbox API key from SatStacker (request via **support@satstacker.app**)
 - A way to make HTTPS requests. Curl examples are shown throughout
 - A test user inside your platform with consent to enable Smart Timing
+- An exchange sandbox or local order simulator isolated from live customer funds
+- A durable attempt ledger that deduplicates instructions before exchange submission
 
 ## Step 1 — Verify your credentials
 
@@ -49,7 +51,7 @@ curl https://api.satstacker.app/partner/v1/users \
     "auth_provider": "email",
     "consent_accepted": true,
     "consent_version": "satstacker-smart-timing-v1",
-    "consent_timestamp": "2026-05-15T15:00:00Z"
+    "consent_timestamp": "2026-05-15T07:55:00Z"
   }'
 ```
 
@@ -72,6 +74,8 @@ curl https://api.satstacker.app/partner/v1/plans \
     "status": "active"
   }'
 ```
+
+The amount is an all-in spending budget including exchange fees. A $100 window must not debit more than $100 across its instructions. Report total debit in `usd_amount`, net credited BTC in `btc_amount`, and the fee already included in the debit in `partner_fee_usd`. See [Amounts, Fees and Execution Outcomes](/execution-contract).
 
 Like users, plans are idempotent on `partner_plan_id` within a partner environment. Re-sending the same plan updates editable fields, and if the amount or frequency changes, SatStacker resets the plan's buying window. See [Plans](/concepts#partner-plan) for the full reset rules.
 
@@ -111,7 +115,7 @@ A successful response returns an array of due execution instructions. The exampl
 ]
 ```
 
-Each instruction is **leased to you for 5 minutes** when returned. If you do not confirm it within that window, SatStacker assumes your worker crashed and re-issues the same instruction, with the same `execution_id` and `idempotency_key`, on a later poll. Always dedupe on `idempotency_key` on your side.
+Each instruction is **leased to you for 5 minutes** when returned. If you do not confirm it within that window, the same instruction becomes eligible for redelivery, with the same `execution_id` and `idempotency_key`, on a later poll. Always dedupe on `idempotency_key` on your side.
 
 Recommended polling cadence: **once every 60 seconds at the partner level**, not per user. See [Rate Limits](/rate-limits) for guidance.
 
@@ -163,7 +167,7 @@ curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5
   }'
 ```
 
-For a failure, such as insufficient funds, market closed, or network error:
+For a definitive zero-spend failure, such as an exchange rejection for insufficient funds, report the final outcome. Do not report an uncertain network timeout as failed: first look up the original exchange attempt.
 
 ```bash
 curl -X POST https://api.satstacker.app/partner/v1/executions/exec_8e1d3f9a2b4c5d6e7f8a9b0c/confirm \
@@ -182,13 +186,13 @@ See [Confirm Execution](/api/confirm-execution) for the full schema, partial-fil
 
 ## A complete execution lifecycle
 
-Here's what a single execution looks like from creation to confirmation, with realistic timing:
+Here's what a single execution looks like from creation to confirmation, with an illustrative timeline. These offsets describe delivery and confirmation after an instruction exists; they are not a promise about when the strategy will trigger:
 
 **T+0:00** — Smart Timing engine decides a tranche should fire. SatStacker writes a `PartnerExecution` row with `status: pending`. If you have a webhook registered, SatStacker fires `executions.available` to your endpoint.
 
 **T+0:01** — Your webhook handler returns `200 OK` and triggers your worker to poll.
 
-**T+0:02** — Your worker calls `GET /partner/v1/executions/due`. SatStacker returns the execution with `status` updated to `sent` and `lease_expires_at` set to `T+5:00`.
+**T+0:02** — Your worker calls `GET /partner/v1/executions/due`. SatStacker returns the execution with `status` updated to `sent` and `lease_expires_at` set to `T+5:02` (five minutes after delivery).
 
 **T+0:03** — Your worker executes the buy on your venue. Receives an internal order ID like `your_order_001`.
 
@@ -235,8 +239,9 @@ The execution is now `filled`. The trade appears in your monthly billing report.
 
 ## What's next
 
-You now have the full flow working end-to-end:
+Once a genuine sandbox instruction has been executed and confirmed, complete the remaining [sandbox acceptance checks](/sandbox-testing) before production cutover:
 
+- **Operations readiness** — prepare the durable ledger, recovery procedures and monitoring described in [Operations and Reconciliation](/operations).
 - **Production cutover** — when you are ready to go live, request a production key (`sse_live_*`) and switch from your sandbox key to your production key. The base URL, endpoints, and payloads are identical between sandbox and production.
 - **Billing visibility** — call `GET /partner/v1/billing/monthly?month=YYYY-MM` to see usage and fees for any billing month.
 - **Per-user reconciliation** — `GET /partner/v1/billing/monthly/users` returns volume by user for finance review.

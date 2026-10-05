@@ -1,0 +1,167 @@
+{
+  "description": "OFFLINE CLIENT FIXTURES ONLY. These IDs are not issued sandbox records and cannot be confirmed against SatStacker. All USD budgets include exchange fees.",
+  "scenarios": [
+    {
+      "name": "no_due_instructions",
+      "due_response": []
+    },
+    {
+      "name": "full_fill_all_in",
+      "due_response": [
+        {
+          "partner_slug": "your_partner_slug",
+          "partner_user_id": "sandbox_user_001",
+          "partner_plan_id": "sandbox_plan_001",
+          "side": "buy",
+          "asset": "BTC",
+          "spend_currency": "USD",
+          "amount_usd": "10.00",
+          "reason": "smart_timing",
+          "window_id": "0123456789abcdef0123456789abcdef",
+          "window_start": "2026-10-05T08:00:00Z",
+          "tranche_key": "0",
+          "created_at": "2026-10-05T20:00:00Z",
+          "lease_expires_at": "2026-10-05T20:05:00Z",
+          "delivered_count": 1,
+          "execution_id": "exec_fixture_full_001",
+          "idempotency_key": "fixture:full-attempt-1"
+        }
+      ],
+      "confirmation_request": {
+        "partner_order_id": "sandbox_order_full_001",
+        "status": "filled",
+        "executed_at": "2026-10-05T20:00:05Z",
+        "usd_amount": "10.00",
+        "btc_amount": "0.00009900",
+        "execution_price": "100000.00",
+        "partner_fee_usd": "0.10"
+      },
+      "confirmation_response": {
+        "ok": true,
+        "execution_id": "exec_fixture_full_001",
+        "status": "filled",
+        "partner_order_id": "sandbox_order_full_001"
+      }
+    },
+    {
+      "name": "lease_redelivery",
+      "first_due_response": [
+        {
+          "partner_slug": "your_partner_slug",
+          "partner_user_id": "sandbox_user_001",
+          "partner_plan_id": "sandbox_plan_001",
+          "side": "buy",
+          "asset": "BTC",
+          "spend_currency": "USD",
+          "amount_usd": "10.00",
+          "reason": "smart_timing",
+          "window_id": "0123456789abcdef0123456789abcdef",
+          "window_start": "2026-10-05T08:00:00Z",
+          "tranche_key": "0",
+          "created_at": "2026-10-05T20:00:00Z",
+          "lease_expires_at": "2026-10-05T20:05:00Z",
+          "delivered_count": 1,
+          "execution_id": "exec_fixture_full_001",
+          "idempotency_key": "fixture:full-attempt-1"
+        }
+      ],
+      "redelivered_due_response": [
+        {
+          "partner_slug": "your_partner_slug",
+          "partner_user_id": "sandbox_user_001",
+          "partner_plan_id": "sandbox_plan_001",
+          "side": "buy",
+          "asset": "BTC",
+          "spend_currency": "USD",
+          "amount_usd": "10.00",
+          "reason": "smart_timing",
+          "window_id": "0123456789abcdef0123456789abcdef",
+          "window_start": "2026-10-05T08:00:00Z",
+          "tranche_key": "0",
+          "created_at": "2026-10-05T20:00:00Z",
+          "lease_expires_at": "2026-10-05T20:11:00Z",
+          "delivered_count": 2,
+          "execution_id": "exec_fixture_full_001",
+          "idempotency_key": "fixture:full-attempt-1"
+        }
+      ],
+      "expectation": "Use the original attempt; do not place another exchange order."
+    },
+    {
+      "name": "terminal_partial_all_in",
+      "due_response": [
+        {
+          "partner_slug": "your_partner_slug",
+          "partner_user_id": "sandbox_user_001",
+          "partner_plan_id": "sandbox_plan_001",
+          "side": "buy",
+          "asset": "BTC",
+          "spend_currency": "USD",
+          "amount_usd": "10.00",
+          "reason": "smart_timing",
+          "window_id": "0123456789abcdef0123456789abcdef",
+          "window_start": "2026-10-05T08:00:00Z",
+          "tranche_key": "0",
+          "created_at": "2026-10-05T20:00:00Z",
+          "lease_expires_at": "2026-10-05T20:05:00Z",
+          "delivered_count": 1,
+          "execution_id": "exec_fixture_partial_001",
+          "idempotency_key": "fixture:partial-attempt-1"
+        }
+      ],
+      "confirmation_request": {
+        "partner_order_id": "sandbox_order_partial_001",
+        "status": "partial",
+        "executed_at": "2026-10-05T20:00:05Z",
+        "usd_amount": "6.00",
+        "btc_amount": "0.00005940",
+        "execution_price": "100000.00",
+        "partner_fee_usd": "0.06"
+      },
+      "expected_same_window_release_usd": "4.00"
+    },
+    {
+      "name": "confirmation_replay",
+      "confirmation_request": {
+        "partner_order_id": "sandbox_order_full_001",
+        "status": "filled",
+        "executed_at": "2026-10-05T20:00:05Z",
+        "usd_amount": "10.00",
+        "btc_amount": "0.00009900",
+        "execution_price": "100000.00",
+        "partner_fee_usd": "0.10"
+      },
+      "confirmation_response": {
+        "ok": true,
+        "execution_id": "exec_fixture_full_001",
+        "status": "filled",
+        "partner_order_id": "sandbox_order_full_001",
+        "replayed": true
+      }
+    },
+    {
+      "name": "definitive_failed_zero_spend",
+      "confirmation_request": {
+        "partner_order_id": "local_attempt_no_order_001",
+        "status": "failed",
+        "failure_reason": "below_venue_minimum"
+      }
+    },
+    {
+      "name": "definitive_cancelled_zero_spend",
+      "confirmation_request": {
+        "partner_order_id": "sandbox_order_cancelled_001",
+        "status": "cancelled",
+        "failure_reason": "cancelled_before_fill"
+      }
+    },
+    {
+      "name": "changed_confirmation_conflict",
+      "http_status": 409,
+      "response": {
+        "detail": "Execution already confirmed as status='filled' with partner_order_id='sandbox_order_full_001'. An execution cannot be re-confirmed with different values."
+      },
+      "expectation": "Resolve against the original ledger; do not place another buy or invent a new order ID."
+    }
+  ]
+}

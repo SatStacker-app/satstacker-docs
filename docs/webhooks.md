@@ -81,7 +81,9 @@ Example response:
 }
 ```
 
-The webhook secret is shown only once. Store it securely. SatStacker cannot recover it later.
+The webhook secret is returned only in the successful registration response. Store it securely; the GET endpoint does not return it.
+
+Every successful registration generates a new secret, even for the same URL. Treat registration as a secret-rotating operation, not an idempotent retry. If a response is lost, GET can show registration status but cannot recover the secret; coordinate another registration and update the verifier from the successful response.
 
 To rotate the secret, register the webhook URL again. Registering again replaces the previous URL and generates a new secret.
 
@@ -271,3 +273,5 @@ Webhook delivery status is visible through `GET /partner/v1/webhooks` using thes
 | `consecutive_failures` | Number of consecutive failed delivery attempts. |
 
 To reactivate a paused webhook, register the webhook URL again with `POST /partner/v1/webhooks`.
+
+For worker recovery and reconciliation, see [Operations and Reconciliation](/operations).
